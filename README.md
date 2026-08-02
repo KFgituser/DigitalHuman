@@ -1,29 +1,33 @@
 # DigitalHuman
 
-数字人操控项目，包含后端、前端和数据库建表脚本。
+DigitalHuman is a collaborative project between Beijing Jiaotong University and Lenovo, designed to empower the university's finance department with an intelligent digital human service.
 
-## 项目结构
+The system provides finance-related consultation and Q&A support for faculty, students, and staff. Its digital human question-answering capability integrates online large language model APIs, embedding/vector model APIs, and a domain knowledge graph to deliver more accurate and context-aware responses.
 
-- `backend/`：Spring Boot 后端服务
-- `frontend/`：React 前端应用
-- `database/`：MySQL 数据库初始化脚本
+In addition to the consultation experience, the software records conversation logs and detailed interaction metadata for review and analysis. It also includes operations and maintenance monitoring features to support stable day-to-day service management.
 
-## 数据库
+## Project Structure
 
-数据库脚本位于：
+- `backend/`: Spring Boot backend service
+- `frontend/`: React frontend application
+- `database/`: MySQL database initialization scripts
+
+## Database
+
+The database setup script is located at:
 
 ```text
 database/Mysql数据库账户建表.sql
 ```
 
-## 后端启动
+## Backend
 
 ```bash
 cd backend
 mvn spring-boot:run
 ```
 
-## 前端启动
+## Frontend
 
 ```bash
 cd frontend
