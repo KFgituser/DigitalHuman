@@ -1,0 +1,14 @@
+/* styles/logo.css */
+.logo-container {
+  display: flex;
+  align-items: center;
+  padding-left: 0;
+  height: 100%;
+}
+
+.logo {
+  height: var(--topbar-height);
+  width: auto;
+  object-fit: contain;
+  margin-right: 0;
+}

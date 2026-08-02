@@ -1,0 +1,2125 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>唐山数字人2.0问答记录查询与分析</title>
+    <!-- CDN 链接 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"
+        integrity="sha384-XcdcwHqIPULERb2yDEM4R0XaQKU3YnDsrTmjACBZyfdVVqjh6xQ4/DCMd7XLcA6Y"
+        crossorigin="anonymous"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .description {
+            color: #7f8c8d;
+            font-size: 16px;
+        }
+        
+        /* 统计面板样式 */
+        .stats-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        .chart-container {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+        }
+        
+        .chart {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            height: 300px;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .search-section {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-grow: 1;
+            max-width: 500px;
+        }
+        
+        .search-input {
+            flex-grow: 1;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+        
+        .search-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+        }
+        
+        .search-btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .clear-search {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-size: 14px;
+        }
+        
+        .clear-search:hover {
+            background-color: #c0392b;
+        }
+        
+        .download-section {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .download-btn {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+        }
+        
+        .download-btn:hover {
+            background-color: #27ae60;
+        }
+        
+        .download-btn:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .stats {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        
+        .search-info {
+            background-color: #e8f4fc;
+            border-radius: 6px;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .search-keyword {
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .search-results-count {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #7f8c8d;
+        }
+        
+        .search-loading {
+            text-align: center;
+            padding: 20px;
+            color: #3498db;
+            font-size: 14px;
+        }
+        
+        .error {
+            text-align: center;
+            padding: 30px;
+            color: #e74c3c;
+            background-color: #fdf0ed;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .qa-list {
+            margin-bottom: 30px;
+        }
+        
+        .qa-item {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #3498db;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .qa-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+        
+        .question {
+            font-weight: bold;
+            font-size: 18px;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .question-content {
+            flex: 1;
+            min-width: 0; /* 防止内容溢出 */
+        }
+        
+        .question::before {
+            content: "问：";
+            color: #3498db;
+            margin-right: 5px;
+            flex-shrink: 0;
+        }
+        
+        .answer {
+            background-color: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            border: 1px solid #eaeaea;
+        }
+        
+        .answer::before {
+            content: "答：";
+            color: #e74c3c;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        
+        .meta {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        
+        .highlight {
+            background-color: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .pagination button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin: 0 3px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .pagination button:hover:not(:disabled) {
+            background-color: #2980b9;
+        }
+        
+        .pagination button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .page-info {
+            margin: 0 15px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .page-numbers {
+            display: flex;
+            margin: 0 10px;
+        }
+        
+        .page-number {
+            background-color: #ecf0f1;
+            color: #2c3e50;
+            border: none;
+            padding: 8px 12px;
+            margin: 0 2px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .page-number:hover {
+            background-color: #d5dbdb;
+        }
+        
+        .page-number.active {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .page-jump {
+            display: flex;
+            align-items: center;
+            margin-left: 15px;
+        }
+        
+        .page-jump input {
+            width: 60px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 0 5px;
+            text-align: center;
+        }
+        
+        .page-jump button {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .page-jump button:hover {
+            background-color: #27ae60;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #7f8c8d;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #95a5a6;
+        }
+
+        /* 已回答问题的样式 */
+        .answered-item {
+            border-left-color: #2ecc71 !important;
+        }
+
+        .answered-badge {
+            background-color: #2ecc71;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 14px;
+            margin-left: 10px;
+            font-weight: normal;
+        }
+
+        /* 未回答问题的样式 */
+        .unanswered-item {
+            border-left-color: #e74c3c !important;
+            background-color: #fdf0ed;
+        }
+
+        .unanswered-badge {
+            background-color: #e74c3c;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 14px;
+            margin-left: 10px;
+            font-weight: normal;
+        }
+
+        /* 不清晰问题的样式 */
+        .unclearQuestion-item {
+            border-left-color: #e7dc3c !important;
+            background-color: #fdfbed;
+        }
+
+        .unclearQuestion-badge {
+            background-color: #e7dc3c;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 14px;
+            margin-left: 10px;
+            font-weight: normal;
+        }
+
+        /* 分类筛选标签样式 */
+        .category-filter {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-left: 4px solid #3498db;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .category-filter-info {
+            font-size: 16px;
+            color: #2c3e50;
+        }
+        
+        .category-filter-clear {
+            background-color: #95a5a6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-size: 14px;
+        }
+        
+        .category-filter-clear:hover {
+            background-color: #7f8c8d;
+        }
+        
+        .category-filter .category-name {
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .stats-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .chart-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .stat-value {
+                font-size: 2em;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .search-section {
+                width: 100%;
+                max-width: none;
+            }
+            
+            .download-section {
+                width: 100%;
+                justify-content: flex-start;
+            }
+            
+            .qa-item {
+                padding: 15px;
+            }
+            
+            .meta {
+                flex-direction: column;
+            }
+            
+            .meta div {
+                margin-bottom: 5px;
+            }
+            
+            .pagination {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .page-jump {
+                margin-left: 0;
+                margin-top: 10px;
+            }
+        }
+
+        .back-to-top {
+            position: fixed;
+            right: 24px;
+            bottom: 24px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(106, 13, 173, 0.9);
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+            z-index: 999;
+        }
+
+        .back-to-top:hover {
+            background: rgba(106, 13, 173, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+        }
+
+        .back-to-top.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>唐山数字人2.0问答记录查询与分析</h1>
+            <p class="description">查看数字人一体机的问答记录并进行数据分析</p>
+        </header>
+        
+        <!-- 统计面板 -->
+        <div class="stats-panel" id="statsPanel" style="display: none;">
+            <div class="stats-cards">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalQuestions">0</div>
+                    <div class="stat-label">总问题数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="answeredQuestions">0</div>
+                    <div class="stat-label">已回答</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="unansweredQuestions">0</div>
+                    <div class="stat-label">未回答</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="unclearQuestions">0</div>
+                    <div class="stat-label">提问不清晰</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="answerRate">0%</div>
+                    <div class="stat-label">回答率</div>
+                </div>
+            </div>
+            <div class="chart-container">
+                <div class="chart" id="answerRatioChart">
+                    <canvas id="ratioChart"></canvas>
+                </div>
+                <div class="chart" id="dailyTrendChart">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 分类筛选信息 -->
+        <div id="categoryFilter" class="category-filter" style="display: none;">
+            <div class="category-filter-info">
+                当前显示：<span id="categoryName" class="category-name"></span> 类问题
+            </div>
+            <button id="clearCategoryFilter" class="category-filter-clear">清除筛选</button>
+        </div>
+        
+        <div class="controls">
+            <div class="search-section">
+                <input type="text" id="searchInput" class="search-input" placeholder="输入关键词搜索问答记录...">
+                <button id="searchBtn" class="search-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.3-4.3"></path>
+                    </svg>
+                    搜索
+                </button>
+                <button id="clearSearch" class="clear-search" style="display: none;">清除搜索</button>
+            </div>
+            
+            <div class="download-section">
+                <button id="downloadCurrent" class="download-btn" disabled>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    下载当前页
+                </button>
+                <button id="downloadAll" class="download-btn" disabled>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    下载全部数据
+                </button>
+            </div>
+        </div>
+        
+        <div class="stats" id="stats">
+            共 0 条记录
+        </div>
+        
+        <div id="searchInfo" class="search-info" style="display: none;">
+            <div>
+                搜索关键词: <span id="searchKeyword" class="search-keyword"></span>
+            </div>
+            <div id="searchResultsCount" class="search-results-count"></div>
+        </div>
+        
+        <div id="loading" class="loading">
+            正在加载数据，请稍候...
+        </div>
+        
+        <div id="searchLoading" class="search-loading" style="display: none;">
+            正在搜索所有数据，请稍候...
+        </div>
+        
+        <div id="error" class="error" style="display: none;">
+            加载数据时出现错误，请稍后重试。
+        </div>
+        
+        <div id="qaList" class="qa-list" style="display: none;">
+            <!-- 问答列表将在这里动态生成 -->
+        </div>
+        
+        <div id="pagination" class="pagination" style="display: none;">
+            <button id="prevPage" disabled>上一页</button>
+            <div class="page-numbers" id="pageNumbers">
+                <!-- 页码按钮将在这里动态生成 -->
+            </div>
+            <button id="nextPage">下一页</button>
+            <div class="page-jump">
+                <span>跳转到</span>
+                <input type="number" id="jumpPage" min="1" value="1">
+                <span>页</span>
+                <button id="jumpButton">跳转</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 设置基础的 API URL 和认证信息
+        const DEFAULT_API_BASE_URL = "http://10.168.1.101:34001/knowledge/query/records";
+        const API_BASE_URL =
+            new URLSearchParams(window.location.search).get('api') ||
+            window.localStorage.getItem('ragflowQaTangshanApi') ||
+            DEFAULT_API_BASE_URL;
+        const REQUEST_TIMEOUT_MS = 10000;
+        const PAGE_SIZE = 10;
+        
+        // 当前页码和总页数
+        let currentPage = 1;
+        let totalPages = 1;
+        let totalItems = 0;
+        let currentItems = [];
+        let allItems = []; // 存储所有数据用于搜索过滤
+        let searchKeyword = '';
+        let isSearching = false;
+        let filteredItems = [];
+        let allAnalysisData = []; // 存储所有数据用于分析
+        let currentCategory = ''; // 当前筛选的分类：'answered', 'unanswered', 'unclearQuestion'
+        let categoryItems = []; // 当前分类筛选后的数据
+
+        // DOM 元素
+        const loadingElement = document.getElementById('loading');
+        const searchLoadingElement = document.getElementById('searchLoading');
+        const errorElement = document.getElementById('error');
+        const qaListElement = document.getElementById('qaList');
+        const paginationElement = document.getElementById('pagination');
+        const prevPageButton = document.getElementById('prevPage');
+        const nextPageButton = document.getElementById('nextPage');
+        const pageNumbersElement = document.getElementById('pageNumbers');
+        const jumpPageInput = document.getElementById('jumpPage');
+        const jumpButton = document.getElementById('jumpButton');
+        const statsElement = document.getElementById('stats');
+        const downloadCurrentButton = document.getElementById('downloadCurrent');
+        const downloadAllButton = document.getElementById('downloadAll');
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const clearSearchBtn = document.getElementById('clearSearch');
+        const searchInfo = document.getElementById('searchInfo');
+        const searchKeywordElement = document.getElementById('searchKeyword');
+        const searchResultsCountElement = document.getElementById('searchResultsCount');
+        const categoryFilterElement = document.getElementById('categoryFilter');
+        const categoryNameElement = document.getElementById('categoryName');
+        const clearCategoryFilterBtn = document.getElementById('clearCategoryFilter');
+
+        // 图表实例
+        let ratioChart = null;
+        let trendChart = null;
+
+        // 请求控制与防抖
+        const LOAD_DEBOUNCE_MS = 200;
+        let loadDebounceTimer = null;
+        let loadAbortController = null;
+        let activeRequestId = 0;
+
+        function fetchWithTimeout(resource, options = {}) {
+            const controller = new AbortController();
+            const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+            const mergedOptions = { ...options, signal: controller.signal };
+
+            if (options.signal) {
+                if (options.signal.aborted) {
+                    controller.abort();
+                } else {
+                    options.signal.addEventListener('abort', () => controller.abort(), { once: true });
+                }
+            }
+
+            return fetch(resource, mergedOptions).finally(() => {
+                window.clearTimeout(timeoutId);
+            });
+        }
+
+        function buildLoadErrorMessage(error) {
+            const message = error && error.message ? error.message : '未知错误';
+            const isTimeout = error && error.name === 'AbortError';
+            const diagnostics = [];
+
+            diagnostics.push(isTimeout
+                ? `接口请求超时（>${REQUEST_TIMEOUT_MS / 1000}秒）`
+                : `加载失败: ${message}`);
+
+            diagnostics.push(`接口地址: ${API_BASE_URL}`);
+
+            if (window.location.protocol === 'https:' && API_BASE_URL.startsWith('http://')) {
+                diagnostics.push('当前页面是 HTTPS，但接口是 HTTP，浏览器可能会拦截混合内容');
+            }
+
+            diagnostics.push('请确认当前电脑已连入对应内网，且该接口地址可以直接访问');
+            return diagnostics.join('；');
+        }
+
+        function scheduleLoad(page = 1, keyword = '', category = '') {
+            clearTimeout(loadDebounceTimer);
+            loadDebounceTimer = setTimeout(() => {
+                loadQAData(page, keyword, category);
+            }, LOAD_DEBOUNCE_MS);
+        }
+
+        function createAbortError() {
+            const error = new Error('Request aborted');
+            error.name = 'AbortError';
+            return error;
+        }
+        
+        // 获取分类名称
+        function getCategoryName(category) {
+            switch(category) {
+                case 'answered':
+                    return '已回答';
+                case 'unanswered':
+                    return '未回答';
+                case 'unclearQuestion':
+                    return '提问不清晰';
+                default:
+                    return '';
+            }
+        }
+        
+        async function loadQAData(page = 1, keyword = '', category = '') {
+            const requestId = ++activeRequestId;
+
+            try {
+                loadingElement.style.display = 'block';
+                errorElement.style.display = 'none';
+                qaListElement.style.display = 'none';
+                paginationElement.style.display = 'none';
+
+                currentPage = page;
+                searchKeyword = keyword || '';
+                currentCategory = category || '';
+                isSearching = !!searchKeyword;
+
+                let items = [];
+
+                if (currentCategory) {
+                    const fullData = await fetchAllData(searchKeyword);
+                    if (requestId !== activeRequestId) {
+                        return;
+                    }
+
+                    if (!searchKeyword) {
+                        allItems = fullData;
+                    }
+
+                    allAnalysisData = filterItemsByCategory(fullData, currentCategory);
+                    totalItems = allAnalysisData.length;
+                    totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+                    currentPage = Math.min(Math.max(1, page), totalPages);
+
+                    const startIndex = (currentPage - 1) * PAGE_SIZE;
+                    items = allAnalysisData.slice(startIndex, startIndex + PAGE_SIZE);
+                } else {
+                    const params = new URLSearchParams({
+                        page: String(page),
+                        page_size: String(PAGE_SIZE)
+                    });
+
+                    if (searchKeyword) {
+                        params.append('keyword', searchKeyword);
+                    }
+
+                    const [response, fullData] = await Promise.all([
+                        fetchWithTimeout(`${API_BASE_URL}?${params.toString()}`),
+                        fetchAllData(searchKeyword)
+                    ]);
+
+                    if (requestId !== activeRequestId) {
+                        return;
+                    }
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const data = await response.json();
+
+                    if (data.code !== 200) {
+                        throw new Error(data.message || '接口返回错误');
+                    }
+
+                    items = data.result.items || [];
+                    allAnalysisData = fullData;
+                    if (!searchKeyword) {
+                        allItems = fullData;
+                    }
+
+                    totalItems = allAnalysisData.length || data.result.total || items.length;
+                    totalPages = Math.max(1, data.result.total_pages || Math.ceil(totalItems / PAGE_SIZE));
+                    currentPage = Math.min(Math.max(1, page), totalPages);
+                }
+
+                currentItems = items;
+
+                renderQAList(items, searchKeyword);
+                updatePagination();
+                updateStats();
+                updateSearchInfo();
+                updateCategoryFilterInfo();
+                updateStatsPanel();
+
+                clearSearchBtn.style.display = isSearching ? 'block' : 'none';
+                downloadCurrentButton.disabled = items.length === 0;
+                downloadAllButton.disabled = totalItems === 0;
+
+                loadingElement.style.display = 'none';
+                qaListElement.style.display = 'block';
+                paginationElement.style.display = 'flex';
+
+            } catch (error) {
+                if (requestId !== activeRequestId) {
+                    return;
+                }
+
+                console.error('加载聊天记录失败:', error);
+                loadingElement.style.display = 'none';
+                errorElement.style.display = 'block';
+                errorElement.textContent = buildLoadErrorMessage(error);
+            }
+        }
+            
+        // 在页面加载时调用，初始化聊天记录
+        document.addEventListener('DOMContentLoaded', () => {
+            loadQAData(1, '');
+        });
+        
+       
+        
+        // 根据关键词过滤数据
+        function filterItemsByKeyword(items, keyword) {
+            if (!keyword) return items;
+            
+            const lowerKeyword = keyword.toLowerCase();
+            return items.filter(item => {
+                const question = item.question ? item.question.toLowerCase() : '';
+                const answer = item.answer ? item.answer.toLowerCase() : '';
+                
+                return question.includes(lowerKeyword) || answer.includes(lowerKeyword);
+            });
+        }
+        
+        // 根据分类过滤数据
+        function filterItemsByCategory(items, category) {
+            if (!category) return items;
+            
+            return items.filter(item => {
+                const answer = item.answer ? item.answer.trim() : '';
+                
+                // 判断是否为不清晰问题
+                const isUnclearQuestion = 
+                    answer.includes('您的问题表述不太清晰') ||
+                    answer.includes('您的问题表述不清晰') ||
+                    answer.includes('您的问题不清晰') ||
+                    answer.includes('您的问题描述不够清晰') ||
+                    answer.includes('您的问题表述不明确') ||
+                    answer.includes('您的问题不明确') ||
+                    answer.includes('您的提问不明确') ||
+                    answer.includes('您的消息不完整或未提供具体问题') ||
+                    answer.includes('问题表述不太清晰') ||
+                    answer.includes('表述不太清晰') ||
+                    answer.includes('用户的提问不清晰') ||
+                    answer.includes('用户的这条消息没有提出具体的问题或需要解答的内容') ||
+                    answer.includes('用户的问题表述不清晰') ||
+                    answer.includes('没有明确的提问或需求') ||
+                    answer.includes('过于简略') ||
+                    answer.includes('您提到的内容似乎不够明确') ||
+                    answer.includes('用户的问题不清晰') ||
+                    answer.includes('描述似乎不太清晰') ||
+                    answer.includes('这句话不太清楚具体指的是什么事件或情况') ||
+                    answer.includes('您的提问似乎不够清晰或不够全面') ||
+                    answer.includes('提问不清晰');
+                
+                const isUnanswered = 
+                    !isUnclearQuestion && (
+                        answer === '' ||
+                        answer.includes('超出《财务知识库》覆盖范围') ||
+                        answer.includes('超出知识库覆盖范围') ||
+                        answer.includes('未查询到') ||
+                        answer.includes('无法回答') ||
+                        answer.includes('抱歉') ||
+                        answer.includes('对不起') ||
+                        answer.includes('不知道') ||
+                        answer.length < 10
+                    );
+                
+                switch(category) {
+                    case 'answered':
+                        return !isUnclearQuestion && !isUnanswered;
+                    case 'unanswered':
+                        return isUnanswered;
+                    case 'unclearQuestion':
+                        return isUnclearQuestion;
+                    default:
+                        return true;
+                }
+            });
+        }
+
+        // 渲染问答列表
+        function renderQAList(items, keyword = '') {
+            if (!items || items.length === 0) {
+                qaListElement.innerHTML = `
+                    <div class="empty-state">
+                        <h3>暂无聊天记录</h3>
+                        <p>当前没有可显示的数据</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+
+            items.forEach(item => {
+                let questionHtml = escapeHtml(item.question || '');
+                let answerHtml = formatAnswer(item.answer || '');
+
+                if (keyword) {
+                    questionHtml = highlightHtml(questionHtml, keyword);
+                    answerHtml = highlightHtml(answerHtml, keyword);
+                }
+
+                html += `
+                    <div class="qa-item">
+                        <div class="question">${questionHtml}</div>
+                        <div class="answer">${answerHtml}</div>
+                        <div class="meta">
+                            <div>ID: ${item.id}</div>
+                            <div>时间: ${escapeHtml(formatRecordTime(item.create_time))}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            qaListElement.innerHTML = html;
+        }
+        
+        // 高亮文本中的关键词
+        function highlightHtml(html, keyword) {
+            if (!keyword) return html;
+
+            const container = document.createElement('div');
+            container.innerHTML = html;
+
+            const regex = new RegExp(escapeRegExp(keyword), 'gi');
+            const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+            const textNodes = [];
+
+            while (walker.nextNode()) {
+                textNodes.push(walker.currentNode);
+            }
+
+            textNodes.forEach(node => {
+                const text = node.nodeValue;
+                if (!text) return;
+                if (!regex.test(text)) {
+                    regex.lastIndex = 0;
+                    return;
+                }
+                regex.lastIndex = 0;
+
+                const fragment = document.createDocumentFragment();
+                let lastIndex = 0;
+                let match;
+
+                while ((match = regex.exec(text)) !== null) {
+                    const start = match.index;
+                    const end = start + match[0].length;
+                    if (start > lastIndex) {
+                        fragment.appendChild(document.createTextNode(text.slice(lastIndex, start)));
+                    }
+                    const span = document.createElement('span');
+                    span.className = 'highlight';
+                    span.textContent = match[0];
+                    fragment.appendChild(span);
+                    lastIndex = end;
+                }
+
+                if (lastIndex < text.length) {
+                    fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
+                }
+
+                node.parentNode.replaceChild(fragment, node);
+            });
+
+            return container.innerHTML;
+        }
+        
+        // 转义正则表达式特殊字符
+        function escapeRegExp(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+        
+        // 设置最大页码按钮数
+        const MAX_PAGE_BUTTONS = 8; 
+
+        // 更新分页控件
+        function updatePagination() {
+            // 更新上一页/下一页按钮状态
+            prevPageButton.disabled = currentPage <= 1;
+            nextPageButton.disabled = currentPage >= totalPages;
+            
+            // 更新页码按钮
+            renderPageNumbers();
+            
+            // 更新跳转输入框的值
+            jumpPageInput.value = currentPage;
+            jumpPageInput.max = totalPages;
+        }
+        
+        // 更新统计信息
+        function updateStats() {
+            let statsText = `共 ${totalItems} 条记录`;
+            if (isSearching) {
+                statsText = `搜索到 ${totalItems} 条相关记录（在所有数据中搜索）`;
+            }
+            if (currentCategory) {
+                statsText = `当前筛选"${getCategoryName(currentCategory)}": 共 ${totalItems} 条记录`;
+            }
+            statsElement.textContent = statsText;
+        }
+        
+        // 更新搜索信息
+        function updateSearchInfo() {
+            if (isSearching) {
+                searchKeywordElement.textContent = searchKeyword;
+                searchResultsCountElement.textContent = `找到 ${totalItems} 条相关记录`;
+                searchInfo.style.display = 'flex';
+            } else {
+                searchInfo.style.display = 'none';
+            }
+        }
+        
+        // 更新分类筛选信息
+        function updateCategoryFilterInfo() {
+            if (currentCategory) {
+                const categoryName = getCategoryName(currentCategory);
+                categoryNameElement.textContent = categoryName;
+                categoryFilterElement.style.display = 'flex';
+            } else {
+                categoryFilterElement.style.display = 'none';
+            }
+        }
+        
+        // 清除分类筛选
+        function clearCategoryFilter() {
+            currentCategory = '';
+            categoryItems = [];
+            updateCategoryFilterInfo();
+            scheduleLoad(1, searchKeyword);
+        }
+
+        // 渲染页码按钮
+        function renderPageNumbers() {
+            let html = '';
+            
+            // 计算显示的页码范围
+            let startPage = 1;
+            let endPage = totalPages;
+            
+            if (totalPages > MAX_PAGE_BUTTONS) {
+                // 计算起始页码，确保当前页在中间位置
+                startPage = Math.max(1, currentPage - Math.floor(MAX_PAGE_BUTTONS / 2));
+                endPage = startPage + MAX_PAGE_BUTTONS - 1;
+                
+                // 如果结束页码超过总页数，调整起始页码
+                if (endPage > totalPages) {
+                    endPage = totalPages;
+                    startPage = Math.max(1, endPage - MAX_PAGE_BUTTONS + 1);
+                }
+            }
+            
+            // 添加第一页和省略号（如果需要）
+            if (startPage > 1) {
+                html += `<button class="page-number" data-page="1">1</button>`;
+                if (startPage > 2) {
+                    html += `<span style="padding: 8px 5px;">...</span>`;
+                }
+            }
+            
+            // 添加页码按钮
+            for (let i = startPage; i <= endPage; i++) {
+                const activeClass = i === currentPage ? 'active' : '';
+                html += `<button class="page-number ${activeClass}" data-page="${i}">${i}</button>`;
+            }
+            
+            // 添加最后一页和省略号（如果需要）
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    html += `<span style="padding: 8px 5px;">...</span>`;
+                }
+                html += `<button class="page-number" data-page="${totalPages}">${totalPages}</button>`;
+            }
+            
+            pageNumbersElement.innerHTML = html;
+            
+            // 为页码按钮添加事件监听
+            document.querySelectorAll('.page-number').forEach(button => {
+                button.addEventListener('click', () => {
+                    const page = parseInt(button.getAttribute('data-page'));
+                    if (page !== currentPage) {
+                        scheduleLoad(page, searchKeyword, currentCategory);
+                    }
+                });
+            });
+        }
+        
+        // 格式化答案内容
+        function formatAnswer(answer) {
+            if (!answer) return '';
+            const linked = linkifyText(answer);
+            return linked.replace(/\r\n|\n/g, '<br>');
+        }
+        
+        // 执行搜索
+        function performSearch() {
+            const keyword = searchInput.value.trim();
+            currentPage = 1;
+            loadQAData(1, keyword);
+        }
+
+        // 清除搜索
+        function clearSearch() {
+            searchInput.value = '';
+            currentPage = 1;
+            loadQAData(1, '');
+        }
+        
+        // 下载当前页数据为CSV
+        function downloadCurrentPage() {
+            if (!currentItems || currentItems.length === 0) {
+                alert('没有数据可下载');
+                return;
+            }
+            
+            const csvContent = convertToCSV(currentItems);
+            let filename = `问答记录_第${currentPage}页_${getCurrentDateTime()}.csv`;
+            
+            if (isSearching) {
+                filename = `问答记录_${searchKeyword}_第${currentPage}页_${getCurrentDateTime()}.csv`;
+            }
+            
+            if (currentCategory) {
+                filename = `问答记录_${getCategoryName(currentCategory)}_第${currentPage}页_${getCurrentDateTime()}.csv`;
+            }
+            
+            downloadCSV(csvContent, filename);
+        }
+        
+        // 下载全部数据为CSV
+        async function downloadAllData() {
+            try {
+                downloadAllButton.disabled = true;
+                downloadAllButton.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    加载中...
+                `;
+                
+                // 获取要下载的数据
+                let itemsToDownload = [];
+                
+                if (isSearching) {
+                    // 如果是搜索状态，下载所有搜索结果
+                    itemsToDownload = await fetchAllData(searchKeyword);
+                    if (currentCategory) {
+                        itemsToDownload = filterItemsByCategory(itemsToDownload, currentCategory);
+                    }
+                } else if (currentCategory) {
+                    // 如果有分类筛选，下载该分类的所有数据
+                    if (allItems.length === 0) {
+                        await loadAllDataForAnalysis();
+                    }
+                    itemsToDownload = filterItemsByCategory(allItems, currentCategory);
+                } else {
+                    // 否则下载所有数据
+                    itemsToDownload = await fetchAllData();
+                }
+                
+                if (itemsToDownload.length === 0) {
+                    alert('没有数据可下载');
+                    return;
+                }
+                
+                const csvContent = convertToCSV(itemsToDownload);
+                let filename = `问答记录_全部数据_${getCurrentDateTime()}.csv`;
+                
+                if (isSearching) {
+                    filename = `问答记录_${searchKeyword}_全部数据_${getCurrentDateTime()}.csv`;
+                } else if (currentCategory) {
+                    filename = `问答记录_${getCategoryName(currentCategory)}_全部数据_${getCurrentDateTime()}.csv`;
+                }
+                
+                downloadCSV(csvContent, filename);
+                
+            } catch (error) {
+                console.error('下载全部数据时出错:', error);
+                alert('下载全部数据时出错: ' + error.message);
+            } finally {
+                downloadAllButton.disabled = false;
+                downloadAllButton.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    下载全部数据
+                `;
+            }
+        }
+        
+        // 预加载所有数据用于分析
+        async function loadAllDataForAnalysis() {
+            const allData = await fetchAllData('');
+            allItems = allData;
+            allAnalysisData = allData;
+        }
+
+        // 获取所有数据（支持按关键词拉取全部分页）
+        async function fetchAllData(keyword = '') {
+            if (!keyword && allItems.length > 0) {
+                return allItems;
+            }
+
+            const allData = [];
+            let page = 1;
+            let hasMore = true;
+
+            while (hasMore) {
+                const params = new URLSearchParams({
+                    page: String(page),
+                    page_size: '100',
+                    
+                });
+
+                if (keyword) {
+                    params.append('keyword', keyword);
+                }
+
+                const response = await fetchWithTimeout(`${API_BASE_URL}?${params.toString()}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (data.code !== 200) {
+                    throw new Error(data.message || '接口返回错误');
+                }
+
+                const result = data && data.result ? data.result : {};
+                const items = result.items || [];
+                if (items.length > 0) {
+                    allData.push(...items);
+                }
+
+                const total = result.total || allData.length;
+                if (items.length === 0 || allData.length >= total) {
+                    hasMore = false;
+                } else {
+                    page += 1;
+                }
+            }
+
+            if (!keyword) {
+                allItems = allData;
+            }
+
+            return allData;
+        }
+
+       
+        // 将数据转换为CSV格式
+        function convertToCSV(items) {
+            const headers = ['ID', '提问时间', '问题', '答案'];
+            const csvRows = [headers.join(',')];
+            
+            items.forEach(item => {
+                const row = [
+                    item.id,
+                    `"${formatRecordTime(item.create_time)}"`,
+                    `"${escapeCSV(item.question)}"`,
+                    `"${escapeCSV(item.answer)}"`
+                ];
+                csvRows.push(row.join(','));
+            });
+            
+            return csvRows.join('\n');
+        }
+        
+        // 转义CSV中的特殊字符
+        function escapeCSV(str) {
+            if (!str) return '';
+            // 转义双引号，并在包含逗号、换行或双引号时用双引号包围
+            return str.replace(/"/g, '""');
+        }
+        
+        // 下载CSV文件
+        function downloadCSV(csvContent, filename) {
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // 获取当前日期时间字符串
+        function getCurrentDateTime() {
+            const now = new Date();
+            return formatDateTimeParts(now).join('').replace(' ', '_').replace(/:/g, '-');
+        }
+        
+        // HTML 转义函数
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function parseRecordDate(value) {
+            if (value === null || value === undefined || value === '') {
+                return null;
+            }
+
+            if (value instanceof Date) {
+                return Number.isNaN(value.getTime()) ? null : value;
+            }
+
+            if (typeof value === 'number') {
+                const timestamp = value < 1e12 ? value * 1000 : value;
+                const date = new Date(timestamp);
+                return Number.isNaN(date.getTime()) ? null : date;
+            }
+
+            const raw = String(value).trim();
+            if (!raw) {
+                return null;
+            }
+
+            const utcLikeMatch = raw.match(
+                /^(\d{4})-(\d{2})-(\d{2})(?:[ T])(\d{2}):(\d{2})(?::(\d{2}))?(?:\.(\d{1,3}))?$/
+            );
+            if (utcLikeMatch) {
+                const [, year, month, day, hour, minute, second = '0', millisecond = '0'] = utcLikeMatch;
+                const date = new Date(Date.UTC(
+                    Number(year),
+                    Number(month) - 1,
+                    Number(day),
+                    Number(hour),
+                    Number(minute),
+                    Number(second),
+                    Number(millisecond.padEnd(3, '0'))
+                ));
+                return Number.isNaN(date.getTime()) ? null : date;
+            }
+
+            if (/^\d{10,13}$/.test(raw)) {
+                const timestamp = raw.length === 10 ? Number(raw) * 1000 : Number(raw);
+                const date = new Date(timestamp);
+                return Number.isNaN(date.getTime()) ? null : date;
+            }
+
+            const normalized = raw.includes('T') ? raw : raw.replace(' ', 'T');
+            let date = new Date(normalized);
+            if (!Number.isNaN(date.getTime())) {
+                return date;
+            }
+
+            date = new Date(raw.replace(/-/g, '/'));
+            return Number.isNaN(date.getTime()) ? null : date;
+        }
+
+        function formatDateTimeParts(date) {
+            const parts = new Intl.DateTimeFormat('zh-CN', {
+                timeZone: 'Asia/Shanghai',
+                hour12: false,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            }).formatToParts(date);
+
+            const getPart = (type) => parts.find(part => part.type === type)?.value || '';
+            return [
+                getPart('year'),
+                '-',
+                getPart('month'),
+                '-',
+                getPart('day'),
+                ' ',
+                getPart('hour'),
+                ':',
+                getPart('minute'),
+                ':',
+                getPart('second')
+            ];
+        }
+
+        function formatRecordTime(value) {
+            const date = parseRecordDate(value);
+            if (!date) {
+                return value ? String(value) : '';
+            }
+            return formatDateTimeParts(date).join('');
+        }
+
+        function getLocalDateKey(value) {
+            const date = parseRecordDate(value);
+            if (!date) {
+                return '';
+            }
+            return formatDateTimeParts(date).slice(0, 5).join('');
+        }
+
+        function normalizeUrl(rawUrl) {
+            if (!rawUrl) return null;
+            let url = rawUrl.trim();
+            if (!url) return null;
+            if (/^www\./i.test(url)) {
+                url = `https://${url}`;
+            }
+            try {
+                const parsed = new URL(url, window.location.href);
+                if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+                    return parsed.href;
+                }
+            } catch (error) {
+                return null;
+            }
+            return null;
+        }
+
+        function buildSafeLink(labelHtml, href) {
+            return `<a href="${href}" target="_blank" rel="noopener noreferrer">${labelHtml}</a>`;
+        }
+
+        function linkifyText(text) {
+            if (!text) return '';
+            const markdownRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+            const urlRegex = /https?:\/\/[^\s<]+|www\.[^\s<]+/g;
+            let result = '';
+            let index = 0;
+
+            while (index < text.length) {
+                markdownRegex.lastIndex = index;
+                urlRegex.lastIndex = index;
+
+                const mdMatch = markdownRegex.exec(text);
+                const urlMatch = urlRegex.exec(text);
+                let next = null;
+
+                if (mdMatch && urlMatch) {
+                    next = mdMatch.index <= urlMatch.index
+                        ? { type: 'md', match: mdMatch }
+                        : { type: 'url', match: urlMatch };
+                } else if (mdMatch) {
+                    next = { type: 'md', match: mdMatch };
+                } else if (urlMatch) {
+                    next = { type: 'url', match: urlMatch };
+                }
+
+                if (!next) {
+                    result += escapeHtml(text.slice(index));
+                    break;
+                }
+
+                if (next.match.index > index) {
+                    result += escapeHtml(text.slice(index, next.match.index));
+                }
+
+                if (next.type === 'md') {
+                    const labelHtml = escapeHtml(next.match[1]);
+                    const safeUrl = normalizeUrl(next.match[2]);
+                    if (safeUrl) {
+                        result += buildSafeLink(labelHtml, safeUrl);
+                    } else {
+                        result += escapeHtml(next.match[0]);
+                    }
+                    index = next.match.index + next.match[0].length;
+                } else {
+                    const rawUrl = next.match[0];
+                    const safeUrl = normalizeUrl(rawUrl);
+                    if (safeUrl) {
+                        result += buildSafeLink(escapeHtml(rawUrl), safeUrl);
+                    } else {
+                        result += escapeHtml(rawUrl);
+                    }
+                    index = next.match.index + rawUrl.length;
+                }
+            }
+
+            return result;
+        }
+        
+        // 分析问答数据 - 分开处理统计和图表数据
+        function analyzeQAData() {
+            // 使用所有分析数据而不是当前页数据
+            const items = allAnalysisData.length > 0 ? allAnalysisData : allItems;
+            
+            const analysis = {
+                total: items.length,
+                answered: 0,
+                unanswered: 0,
+                unclearQuestions: 0,
+                answerRate: 0,
+                dailyStats: {}
+            };
+
+            // 获取当前日期和30天前的日期（用于图表）
+            const today = new Date();
+            const startDate = new Date();
+            startDate.setDate(today.getDate() - 30);
+            
+            // 用于统计卡片的数据（所有数据）
+            let totalAnswered = 0;
+            let totalUnanswered = 0;
+            let totalUnclear = 0;
+            
+            items.forEach(item => {
+                const answer = item.answer ? item.answer.trim() : '';
+                const itemDate = parseRecordDate(item.create_time);
+                
+                // 判断是否为不清晰问题
+                const isUnclearQuestion = 
+                    answer.includes('您的问题表述不太清晰') || 
+                    answer.includes('您的问题表述不清晰') ||
+                    answer.includes('您的问题不清晰') ||
+                    answer.includes('您的问题描述不够清晰') ||
+                    answer.includes('您的问题表述不明确') ||
+                    answer.includes('您的问题不明确') ||
+                    answer.includes('您的提问不明确') ||
+                    answer.includes('您的消息不完整或未提供具体问题') ||
+                    answer.includes('问题表述不太清晰') ||
+                    answer.includes('表述不太清晰') ||
+                    answer.includes('用户的提问不清晰') ||
+                    answer.includes('用户的这条消息没有提出具体的问题或需要解答的内容') ||
+                    answer.includes('用户的问题表述不清晰') ||
+                    answer.includes('没有明确的提问或需求') ||
+                    answer.includes('过于简略') ||
+                    answer.includes('用户的问题不清晰') ||
+                    answer.includes('提问不清晰');
+                
+                const isUnanswered = 
+                    !isUnclearQuestion && (
+                        answer === '' ||
+                        answer.includes('超出《财务知识库》覆盖范围') ||
+                        answer.includes('超出知识库覆盖范围') ||
+                        answer.includes('未查询到') ||
+                        answer.includes('无法回答') ||
+                        answer.includes('抱歉') ||
+                        answer.includes('对不起') ||
+                        answer.includes('不知道') ||
+                        answer.length < 10
+                    );
+                
+                // 统计所有数据用于卡片显示
+                if (isUnclearQuestion) {
+                    totalUnclear++;
+                } else if (!isUnanswered) {
+                    totalAnswered++;
+                } else {
+                    totalUnanswered++;
+                }
+                
+                // 只统计最近30天的数据用于图表显示
+                if (itemDate && itemDate >= startDate) {
+                    // 按日期统计，使用 YYYY-MM-DD 格式确保正确排序
+                    const date = getLocalDateKey(item.create_time);
+                    if (!analysis.dailyStats[date]) {
+                        analysis.dailyStats[date] = { 
+                            answered: 0, 
+                            unanswered: 0, 
+                            unclearQuestions: 0,
+                            total: 0 
+                        };
+                    }
+                    
+                    if (isUnclearQuestion) {
+                        analysis.dailyStats[date].unclearQuestions++;
+                    } else if (!isUnanswered) {
+                        analysis.dailyStats[date].answered++;
+                    } else {
+                        analysis.dailyStats[date].unanswered++;
+                    }
+                    analysis.dailyStats[date].total++;
+                }
+            });
+            
+            // 更新统计卡片数据（所有数据）
+            analysis.answered = totalAnswered;
+            analysis.unanswered = totalUnanswered;
+            analysis.unclearQuestions = totalUnclear;
+            analysis.answerRate = analysis.total > 0 ? 
+                Math.round((analysis.answered / analysis.total) * 100) : 0;
+            
+            return analysis;
+        }
+        
+        // 更新统计面板
+        function updateStatsPanel() {
+            const analysis = analyzeQAData();
+            
+            // 更新统计卡片
+            document.getElementById('totalQuestions').textContent = analysis.total;
+            document.getElementById('answeredQuestions').textContent = analysis.answered;
+            document.getElementById('unansweredQuestions').textContent = analysis.unanswered;
+            document.getElementById('unclearQuestions').textContent = analysis.unclearQuestions;
+            document.getElementById('answerRate').textContent = analysis.answerRate + '%';
+            
+            // 显示统计面板
+            document.getElementById('statsPanel').style.display = 'block';
+            
+            // 更新图表
+            updateCharts(analysis);
+        }
+        
+        // 更新图表
+        function updateCharts(analysis) {
+            // 回答比例饼图 - 包含三类数据
+            const ratioCtx = document.getElementById('ratioChart').getContext('2d');
+            
+            // 销毁之前的图表实例
+            if (ratioChart) {
+                ratioChart.destroy();
+            }
+            
+            ratioChart = new Chart(ratioCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['已回答', '未回答', '提问不清晰'],
+                    datasets: [{
+                        data: [analysis.answered, analysis.unanswered, analysis.unclearQuestions],
+                        backgroundColor: ['#4CAF50', '#F44336', '#FFC107'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    // 添加悬停时的光标样式
+                    onHover: (event, chartElement) => {
+                        event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
+                    },
+                    onClick: (evt, elements) => {
+                        if (elements.length > 0) {
+                            const index = elements[0].index;
+                            let category = '';
+                            switch(index) {
+                                case 0:
+                                    category = 'answered';
+                                    break;
+                                case 1:
+                                    category = 'unanswered';
+                                    break;
+                                case 2:
+                                    category = 'unclearQuestion';
+                                    break;
+                            }
+                            
+                            if (category) {
+                                // 重置页码并加载对应分类的数据
+                                currentPage = 1;
+                                scheduleLoad(1, searchKeyword, category);
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: 'white',
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // 每日趋势图 - 包含三类数据
+            const trendCtx = document.getElementById('trendChart').getContext('2d');
+            
+            // 对日期进行排序并格式化显示
+            const dates = Object.keys(analysis.dailyStats).sort();
+            const formattedDates = dates.map(date => {
+                const [year, month, day] = date.split('-');
+                return `${year}-${month}-${day}`;
+            });
+            
+            const answeredData = dates.map(date => analysis.dailyStats[date].answered);
+            const unansweredData = dates.map(date => analysis.dailyStats[date].unanswered);
+            const unclearData = dates.map(date => analysis.dailyStats[date].unclearQuestions);
+            
+            // 销毁之前的图表实例
+            if (trendChart) {
+                trendChart.destroy();
+            }
+            
+            trendChart = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: formattedDates,
+                    datasets: [
+                        {
+                            label: '已回答',
+                            data: answeredData,
+                            borderColor: '#4CAF50',
+                            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: '未回答',
+                            data: unansweredData,
+                            borderColor: '#F44336',
+                            backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: '提问不清晰',
+                            data: unclearData,
+                            borderColor: '#FFC107',
+                            backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    // 添加点击事件到趋势图
+                    onClick: (evt, elements) => {
+                        if (elements.length > 0) {
+                            const datasetIndex = elements[0].datasetIndex;
+                            let category = '';
+                            switch(datasetIndex) {
+                                case 0:
+                                    category = 'answered';
+                                    break;
+                                case 1:
+                                    category = 'unanswered';
+                                    break;
+                                case 2:
+                                    category = 'unclearQuestion';
+                                    break;
+                            }
+                            
+                            if (category) {
+                                // 重置页码并加载对应分类的数据
+                                currentPage = 1;
+                                scheduleLoad(1, searchKeyword, category);
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'white'
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: '最近30天问答趋势',
+                            color: 'white',
+                            font: {
+                                size: 14
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                maxTicksLimit: 10 // 限制显示的刻度数量
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 事件监听
+        prevPageButton.addEventListener('click', () => {
+            if (currentPage > 1) {
+                scheduleLoad(currentPage - 1, searchKeyword, currentCategory);
+            }
+        });
+        
+        nextPageButton.addEventListener('click', () => {
+            if (currentPage < totalPages) {
+                scheduleLoad(currentPage + 1, searchKeyword, currentCategory);
+            }
+        });
+        
+        jumpButton.addEventListener('click', () => {
+            const page = parseInt(jumpPageInput.value);
+            if (page >= 1 && page <= totalPages && page !== currentPage) {
+                scheduleLoad(page, searchKeyword, currentCategory);
+            }
+        });
+        
+        jumpPageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                jumpButton.click();
+            }
+        });
+        
+        downloadCurrentButton.addEventListener('click', downloadCurrentPage);
+        downloadAllButton.addEventListener('click', downloadAllData);
+        
+        searchBtn.addEventListener('click', performSearch);
+        
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+        
+        clearSearchBtn.addEventListener('click', clearSearch);
+        
+        clearCategoryFilterBtn.addEventListener('click', clearCategoryFilter);
+        
+        
+
+        // 返回顶部
+        window.addEventListener('load', () => { //监听 页面加载完成 事件。只有当整个页面（包括图片、按钮）加载完后，才执行里面的代码。
+            const backToTopButton = document.getElementById('backToTop');//在页面里查找 id="backToTop" 的按钮元素，并保存到变量中。
+            if (!backToTopButton) return;//如果找不到按钮（null），就直接退出，防止报错。
+            const toggleBackToTop = () => { //定义一个函数，用来“显示/隐藏”返回顶部按钮。
+                if (window.scrollY > 200) {//如果页面向下滚动超过 200px，就把 hidden 类移除（按钮显示）。
+                    backToTopButton.classList.remove('hidden');
+                } else {
+                    backToTopButton.classList.add('hidden');
+                }
+            };
+            window.addEventListener('scroll', toggleBackToTop, { passive: true });
+            toggleBackToTop(); //绑定滚动事件
+            backToTopButton.addEventListener('click', () => {
+                try {
+                    window.scrollTo({ top: 0, behavior: 'smooth' }); //给按钮绑定点击事件。
+                } catch (e) {
+                    window.scrollTo(0, 0);
+                }
+            });
+        });
+    </script>
+    <button id="backToTop" class="back-to-top hidden" type="button" aria-label="返回顶部">
+        <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M7 5h10v2H7z" fill="currentColor"></path>
+            <path d="M12 6l-6 6h4v6h4v-6h4z" fill="currentColor"></path>
+        </svg>
+    </button>
+</body>
+</html>
+
+<!--           Chart 配置对象
+├── type: 'doughnut' 或 'line'      // 图表类型
+├── data: {...}                     // 数据部分
+│   ├── labels: [...]              // 标签
+│   └── datasets: [...]            // 数据集
+└── options: {...}                  // 配置选项
+    ├── responsive: true           // 响应式
+    ├── maintainAspectRatio: false // 宽高比
+    ├── onHover: (event, chartElement) => {...}  // 鼠标悬停事件
+    ├── plugins: {...}             // 插件配置
+    └── scales: {...}              // 坐标轴配置      -->
+
+
+    
+<!--          # 聊天日志运作全流程
+
+数字人（PIOS 前端）
+    │
+    │ 1. 用户提问
+    │    POST /knowledge/query/ask/stream
+    ▼
+34001 适配器（exchange-ragflow-chat.py）
+    │
+    │ 2. Flask 接收请求
+    │    - 解析 query / client_id / knowledge_ids
+    │    - 生成 request_id
+    │    - 记录请求日志
+    │
+    │ 3. 特殊分支判断
+    │    - 如果是“现在几点 / 日期 / 星期”这类时间问题
+    │      → 本地直接生成答案
+    │      → save_chat_record(...) 写入 PostgreSQL
+    │      → 直接返回给数字人
+    │
+    │ 4. 普通问题继续转发
+    │    requests.post(...)
+    ▼
+18888 RagFlow
+    │
+    │ 5. RagFlow 调用知识库 + 模型
+    │    - 检索知识库
+    │    - 调用大模型生成答案
+    │    - 以流式 chunk 返回
+    ▼
+34001 适配器（exchange-ragflow-chat.py）
+    │
+    │ 6. 接收 RagFlow 流式返回
+    │    - 逐行解析 OpenAI/RagFlow 流
+    │    - 转换成 PIOS 需要的格式
+    │    - 累加 total_content（完整答案）
+    │
+    │ 7. 流式回传给数字人前端
+    │    yield data: {...}
+    ▼
+数字人（PIOS 前端）
+    │
+    │ 8. 前端实时显示回答内容
+    ▼
+
+────────────────────────────────────────
+
+34001 适配器（exchange-ragflow-chat.py）
+    │
+    │ 9. 流式回答结束后
+    │    save_chat_record(
+    │        question,
+    │        total_content,
+    │        client_id,
+    │        request_id
+    │    )
+    ▼
+PostgreSQL（knowledge 库）
+    │
+    │ 10. 写入表 ragflow_qa_record
+    │     字段示例：
+    │     - id
+    │     - question
+    │     - answer
+    │     - client_id
+    │     - request_id
+    │     - create_time
+    ▼
+聊天日志持久化完成
+
+────────────────────────────────────────
+
+聊天记录管理页面（ragflow_qa_tangshan.html）
+    │
+    │ 11. 页面加载 / 搜索 / 翻页
+    │     GET /knowledge/query/records?page=1&page_size=10
+    ▼
+34001 适配器（exchange-ragflow-chat.py）
+    │
+    │ 12. 查询接口 get_chat_records()
+    │     - 从 PostgreSQL 查询 ragflow_qa_record
+    │     - 支持分页
+    │     - 支持 keyword 搜索
+    │     - 支持 client_id 筛选
+    ▼
+PostgreSQL（knowledge 库）
+    │
+    │ 13. 返回聊天记录数据
+    ▼
+34001 适配器（JSON 接口）
+    │
+    │ 14. 返回 JSON
+    ▼
+聊天记录管理页面
+    │
+    │ 15. 页面展示聊天记录
+    │     - 问题
+    │     - 回答
+    │     - 时间
+    │     - 搜索/分页/导出
+    ▼
+管理员查看日志                  -->
+
+
+
+
+
