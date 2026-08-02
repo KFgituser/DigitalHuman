@@ -6,6 +6,8 @@ The system provides finance-related consultation and Q&A support for faculty, st
 
 In addition to the consultation experience, the software records conversation logs and detailed interaction metadata for review and analysis. It also includes operations and maintenance monitoring features to support stable day-to-day service management.
 
+![Digital human service showcase](docs/images/digital-human-showcase.jpg)
+
 ![Digital human login screen](docs/screenshots/login-screen.png)
 
 ## Project Structure
