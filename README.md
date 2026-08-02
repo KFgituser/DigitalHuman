@@ -110,7 +110,7 @@ This project packages a digital human finance consultation scenario into a demon
 
 | Login Screen |
 | --- |
-| <img src="docs/screenshots/login-screen.png" alt="Login screen" width="720"> |
+| <img src="docs/screenshots/login-screen.png" alt="Login screen" width="8400"> |
 
 | Q&A Analytics | Operations Monitoring and Chatbot |
 | --- | --- |
