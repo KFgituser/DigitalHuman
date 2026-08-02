@@ -108,9 +108,9 @@ This project packages a digital human finance consultation scenario into a demon
 
 ## Screenshots
 
-| Digital Human Showcase | Login Screen |
-| --- | --- |
-| <img src="docs/images/digital-human-showcase.jpg" alt="Digital human showcase" width="420"> | <img src="docs/screenshots/login-screen.png" alt="Login screen" width="420"> |
+| Login Screen |
+| --- |
+| <img src="docs/screenshots/login-screen.png" alt="Login screen" width="720"> |
 
 | Q&A Analytics | Operations Monitoring and Chatbot |
 | --- | --- |
