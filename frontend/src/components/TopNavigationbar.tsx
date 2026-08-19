@@ -17,16 +17,16 @@ function TopNavigationbar({
   const displayName =
     username || localStorage.getItem('username') || t('common.usernameFallback');
 
-  const handleChatLogsClick = () => {
-    const qaUrl = `${process.env.PUBLIC_URL}/ragflow_qa_tangshan.html`;
+  const handleBeijingChatLogsClick = () => {
+    const qaUrl = `${window.location.origin}/qa-dashboard?source=beijing`;
     const newWindow = window.open(qaUrl, '_blank', 'noopener,noreferrer');
     if (newWindow) {
       newWindow.opener = null;
     }
   };
 
-  const handleBeijingChatLogsClick = () => {
-    const qaUrl = `${process.env.PUBLIC_URL}/qa北京校区.html`;
+  const handleRagflowRecordsClick = () => {
+    const qaUrl = `${window.location.origin}/qa-dashboard?source=ragflowTangshan`;
     const newWindow = window.open(qaUrl, '_blank', 'noopener,noreferrer');
     if (newWindow) {
       newWindow.opener = null;
@@ -39,8 +39,8 @@ function TopNavigationbar({
         <img src="/交小才logo.png" alt={t('topNav.logoAlt')} className="logo" />
       </div>
       <div className="nav-buttons">
-        <button onClick={handleChatLogsClick}>{t('topNav.tangshanLogs')}</button>
         <button onClick={handleBeijingChatLogsClick}>{t('topNav.beijingLogs')}</button>
+        <button onClick={handleRagflowRecordsClick}>{t('topNav.ragflowRecords')}</button>
         <button onClick={() => handleClick('details')}>{t('topNav.details')}</button>
       </div>
       <div className="top-header-actions">

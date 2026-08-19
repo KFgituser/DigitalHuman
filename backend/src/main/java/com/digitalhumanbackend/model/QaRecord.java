@@ -15,20 +15,67 @@ public class QaRecord {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "source_key", length = 64)
+    private String sourceKey;
+
+    @Column(name = "request_id", length = 128)
+    private String requestId;
+
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String question;
 
-    @Column(nullable = false)
+    @Column(columnDefinition = "MEDIUMTEXT")
     private String answer;
 
-    @Column(name = "timestamp", nullable = false)
-    private LocalDateTime timestamp;
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
 
-    @Column(name = "client_id", nullable = false)
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @Column(name = "client_id")
     private String clientId;
 
-    @Column(nullable = false)
-    private int page;
+    @Column
+    private Integer page;
 
-    // Getters and Setters
+    @Column(name = "answer_status", length = 32)
+    private String answerStatus;
+
+    @Column(name = "fail_reason", columnDefinition = "TEXT")
+    private String failReason;
+
+    @Column(name = "answer_duration_seconds")
+    private Double answerDurationSeconds;
+
+    @Column(name = "total_tokens")
+    private Long totalTokens;
+
+    @Column(name = "retrieval_hit")
+    private Boolean retrievalHit;
+
+    @Column(name = "source_summary", columnDefinition = "TEXT")
+    private String sourceSummary;
+
+    @Column(name = "raw_payload", columnDefinition = "LONGTEXT")
+    private String rawPayload;
+
+    @PrePersist
+    public void prePersist() {
+        LocalDateTime now = LocalDateTime.now();
+        if (createdAt == null) {
+            createdAt = now;
+        }
+        if (updatedAt == null) {
+            updatedAt = now;
+        }
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }

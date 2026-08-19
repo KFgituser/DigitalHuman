@@ -47,8 +47,9 @@ export const messages: Record<Language, TranslationNode> = {
       hidePassword: '隐藏密码'
     },
     topNav: {
-      tangshanLogs: '唐山数字人聊天日志',
-      beijingLogs: '北京数字人聊天日志',
+      tangshanLogs: '唐山 QA 记录',
+      beijingLogs: '北京 QA 记录',
+      ragflowRecords: '唐山 QA 记录',
       details: '数字人详情',
       logoAlt: '交小才'
     },
@@ -318,8 +319,9 @@ export const messages: Record<Language, TranslationNode> = {
       hidePassword: 'Hide password'
     },
     topNav: {
-      tangshanLogs: 'Tangshan Chat Logs',
-      beijingLogs: 'Beijing Chat Logs',
+      tangshanLogs: 'Tangshan QA Records',
+      beijingLogs: 'Beijing QA Records',
+      ragflowRecords: 'Tangshan QA Records',
       details: 'Digital Human Details',
       logoAlt: 'Jiao Xiaocai'
     },

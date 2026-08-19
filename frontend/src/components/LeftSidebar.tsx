@@ -181,31 +181,19 @@ function LeftSidebar() {
             <li
               key={device.id}
               onClick={() => handleDeviceClick(device)}
-              className={selectedDeviceId === device.id ? 'selected' : ''}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 8
-              }}
+              className={`device-item ${selectedDeviceId === device.id ? 'selected' : ''}`}
             >
-              <span>{getDisplayName(device, t)}</span>
-              <span style={{ display: 'flex', gap: 6 }}>
+              <span className="device-item__name">{getDisplayName(device, t)}</span>
+              <span className="device-item__actions">
                 <Tooltip title={t('common.edit')} placement="top">
                   <button
                     type="button"
+                    className="device-action-button"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleEditDevice(device);
                     }}
                     aria-label={t('common.edit')}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: 2,
-                      color: '#6b7280'
-                    }}
                   >
                     <EditOutlined />
                   </button>
@@ -213,18 +201,12 @@ function LeftSidebar() {
                 <Tooltip title={t('common.delete')} placement="top">
                   <button
                     type="button"
+                    className="device-action-button"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDeleteDevice(device);
                     }}
                     aria-label={t('common.delete')}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: 2,
-                      color: '#6b7280'
-                    }}
                   >
                     <svg
                       width="16"
@@ -249,7 +231,9 @@ function LeftSidebar() {
             </li>
           ))}
         </ul>
-        <button onClick={handleOpenAddDialog}>{t('sidebar.addDevice')}</button>
+        <button className="add-device-button" onClick={handleOpenAddDialog}>
+          {t('sidebar.addDevice')}
+        </button>
       </div>
 
       <Dialog

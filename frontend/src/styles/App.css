@@ -34,7 +34,7 @@
 
 .nav-buttons {
   display: flex;
-  gap: 72px;
+  gap: 32px;
   justify-content: center;
   flex: 1;
   min-width: 0;
@@ -47,7 +47,7 @@
   backdrop-filter: blur(10px);
   color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 20px 32px;
+  padding: 18px 24px;
   cursor: pointer;
   font-size: 18px;
   border-radius: 8px;
@@ -978,10 +978,13 @@
 }
 
 .left-sidebar {
-  width: 240px;
+  box-sizing: border-box;
+  flex: 0 0 300px;
+  width: 300px;
   background-color: #f0f0f0;
-  padding: 20px;
+  padding: 28px 20px;
   height: calc(100vh - var(--topbar-height));
+  overflow-y: auto;
 }
 
 @media (max-width: 1200px) {
@@ -1017,7 +1020,8 @@
   }
 
   .left-sidebar {
-    width: 240px;
+    flex-basis: 280px;
+    width: 280px;
   }
 }
 
@@ -1027,8 +1031,10 @@
   }
 
   .left-sidebar {
+    flex: 0 0 auto;
     width: 100%;
     height: auto;
+    padding: 20px;
   }
 
   .main-content {
@@ -1082,30 +1088,80 @@
 
 
 /* Device List in Left Sidebar */
+.device-list h3 {
+  margin: 10px 0 28px;
+  font-size: 20px;
+  line-height: 1.25;
+}
+
 .device-list ul {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 0 28px;
   padding: 0;
   list-style: none;
 }
 
 .device-list li {
-  padding: 12px;
+  padding: 12px 10px 12px 12px;
   cursor: pointer;
   font-size: 16px;
   transition: background-color 0.3s;
-  border-radius: 5px;
-    display: block;
+  border-radius: 8px;
+  display: block;
+}
+
+.device-list li.device-item {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 56px;
+}
+
+.device-item__name {
+  flex: 1 1 auto;
+  line-height: 1.35;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.device-item__actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
 }
 
 .device-list li.selected {
   background-color: #a5c4f6;
-    width: 100%;
+  width: 100%;
   font-weight: bold;
-  
+}
+
+.device-list .device-action-button {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #6b7280;
+  cursor: pointer;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  padding: 0;
+  width: 28px;
+}
+
+.device-list .device-action-button:hover {
+  background-color: rgba(53, 122, 232, 0.12);
+  color: #357AE8;
 }
 
 
 /* 为添加设备按钮样式 */
-.device-list button {
+.device-list .add-device-button {
   background-color: #5d9afb;
   color: white;
   border: none;  /* 去掉默认边框 */
@@ -1120,6 +1176,6 @@
 }
 
 /* 鼠标悬停时的样式 */
-.device-list button:hover {
+.device-list .add-device-button:hover {
   background-color: #357AE8;  /* 更深的蓝色背景 */
 }

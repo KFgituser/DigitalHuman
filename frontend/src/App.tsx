@@ -4,6 +4,7 @@ import LoginPage from './components/LoginPage';
 import MainPage from './components/MainPage';
 import ChatLogs from './components/ChatLogs';
 import AnalysisResults from './components/AnalysisResults';
+import QARecordsDashboard from './components/QARecordsDashboard';
 import './styles/App.css';
 
 function App() {
@@ -51,6 +52,10 @@ function App() {
           <Route
             path="/analysis"
             element={isLoggedIn ? <AnalysisResults /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/qa-dashboard"
+            element={isLoggedIn ? <QARecordsDashboard /> : <Navigate to="/login" />}
           />
           <Route path="/" element={<Navigate to="/login" />} />
         </Routes>
