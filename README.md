@@ -95,6 +95,31 @@ npm install
 npm start
 ```
 
+## Docker Deployment
+
+The repository includes Docker configuration for running the full system with three services: React/Nginx frontend, Spring Boot backend, and MySQL.
+
+Docker-related files:
+
+- `compose.yaml`: runtime services, environment variables, MySQL volume, and service dependencies
+- `compose.build.yaml`: local image build configuration for the frontend and backend
+- `.env.example`: safe template for required deployment variables
+- `backend/Dockerfile`: backend image build
+- `frontend/Dockerfile`: frontend image build
+- `frontend/nginx/default.conf`: Nginx static hosting and `/api/` reverse proxy configuration
+- `scripts/Initialize-DeploymentEnv.ps1`: creates a private local `.env` file with generated secrets
+- `scripts/Backup-ComposeDatabase.ps1`: exports a database backup from the Compose MySQL service
+- `scripts/Export-OfflinePackage.ps1`: builds an offline deployment package with Docker images and optional database snapshot
+
+Quick start on Windows with Docker Desktop:
+
+```powershell
+.\scripts\Initialize-DeploymentEnv.ps1
+docker compose -f compose.yaml -f compose.build.yaml up -d --build
+```
+
+The generated `.env`, database backups, offline packages, and Docker image archives are intentionally excluded from Git because they may contain secrets or production data. See [Docker Compose Deployment](DOCKER-DEPLOYMENT.md) for the full deployment and migration guide.
+
 ## My Role
 
 This project packages a digital human finance consultation scenario into a demonstrable full-stack system. My work focused on organizing the repository, integrating the React frontend with Spring Boot APIs, supporting authentication and conversation records, presenting Q&A analytics, and adding monitoring views for operational maintenance.
@@ -110,7 +135,7 @@ This project packages a digital human finance consultation scenario into a demon
 
 | Login Screen |
 | --- |
-| <img src="docs/screenshots/login-screen.png" alt="Login screen" width="8400"> |
+| <img src="docs/screenshots/login-screen.png" alt="Login screen" width="720"> |
 
 | Q&A Analytics | Operations Monitoring and Chatbot |
 | --- | --- |
