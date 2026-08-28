@@ -133,13 +133,17 @@ This project packages a digital human finance consultation scenario into a demon
 
 ## Screenshots
 
-| Login Screen |
+| Response Time and Token Details |
 | --- |
-| <img src="docs/screenshots/login-screen.png" alt="Login screen" width="720"> |
+| <img src="docs/screenshots/response-time-token-details.png" alt="Response time and token details" width="720"> |
 
-| Q&A Analytics | Operations Monitoring and Chatbot |
+| Q&A Statistics Analysis | Answer Image Display |
 | --- | --- |
-| <img src="docs/screenshots/qa-analytics-details.jpg" alt="Q&A analytics details" width="420"> | <img src="docs/screenshots/operations-monitor-chatbot.png" alt="Operations monitoring and chatbot" width="420"> |
+| <img src="docs/screenshots/qa-statistics-analysis.png" alt="Q&A statistics analysis" width="420"> | <img src="docs/screenshots/answer-image-display.png" alt="Answer image display" width="420"> |
+
+| Domain Knowledge Graph |
+| --- |
+| <img src="docs/screenshots/domain-knowledge-graph.png" alt="Domain knowledge graph" width="720"> |
 
 ## Portfolio Summary
 
