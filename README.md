@@ -6,7 +6,7 @@ The Q&A experience integrates online large language model APIs, embedding/vector
 
 
 - [Beijing Jiaotong University News](https://mp.weixin.qq.com/s/J67AnABbr6ij_h1s85yT_A)
-- [Promotional Video](https://weixin.qq.com/sph/AOpcAIqJGD)
+- [Promotional Video](https://www.douyin.com/video/7668967184319761690)
 
 <img src="docs/images/digital-human-showcase.jpg" alt="Digital human service showcase" width="720">
 
