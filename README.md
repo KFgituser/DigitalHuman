@@ -4,7 +4,6 @@ A full-stack digital human service platform for finance consultation, conversati
 
 The Q&A experience integrates online large language model APIs, embedding/vector model APIs, and a finance-domain knowledge graph to produce more accurate, traceable, and context-aware answers. The system also records conversation logs, stores detailed interaction metadata, and provides monitoring tools for daily operations and maintenance.
 
-## Related Links
 
 - [Beijing Jiaotong University News](https://mp.weixin.qq.com/s/J67AnABbr6ij_h1s85yT_A)
 - [Promotional Video](https://weixin.qq.com/sph/AOpcAIqJGD)
