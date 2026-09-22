@@ -1,7 +1,8 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:8080/'
+  // Nginx forwards this same-origin path to the backend container.
+  baseURL: '/api/'
 });
 
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {

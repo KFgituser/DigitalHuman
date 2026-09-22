@@ -8,9 +8,16 @@ import {
   type QARecordSourceKey
 } from '../config/qaRecords';
 import api from '../services/api';
+import { useI18n } from '../i18n';
+import {
+  interpolateDashboardText,
+  qaDashboardText,
+  qaSourceText,
+  qaStatusLabels,
+  type DashboardText,
+  type QAStatus
+} from '../config/qaDashboardI18n';
 import '../styles/QARecordsDashboard.css';
-
-type QAStatus = 'answered' | 'unanswered' | 'unclear' | 'unknown';
 
 type PromptMetric = {
   label?: string;
@@ -108,13 +115,6 @@ type Analysis = {
   totalTokens: number | null;
   retrievalHitRate: number | null;
   daily: Record<string, StatsDaily>;
-};
-
-const statusLabels: Record<QAStatus, string> = {
-  answered: '已回答',
-  unanswered: '未回答',
-  unclear: '提问不清晰',
-  unknown: '待确认'
 };
 
 const statusOrder: QAStatus[] = ['answered', 'unanswered', 'unclear', 'unknown'];
@@ -502,9 +502,16 @@ function csvValue(value: unknown): string {
   return `"${String(value ?? '').replace(/"/g, '""')}"`;
 }
 
-function downloadCsv(records: QARecord[], source: QARecordSource, suffix: string) {
+function downloadCsv(
+  records: QARecord[],
+  source: QARecordSource,
+  sourceLabel: string,
+  statusLabels: Record<QAStatus, string>,
+  ui: DashboardText,
+  suffix: string
+) {
   const rows = [
-    ['ID', '记录类型', '状态', '时间', '耗时', 'Token', '问题', '答案', '失败原因', '来源']
+    [ui.id, ui.recordType, ui.status, ui.time, ui.duration, ui.token, ui.question, ui.answer, ui.failureReason, ui.source]
       .map(csvValue)
       .join(',')
   ];
@@ -513,7 +520,7 @@ function downloadCsv(records: QARecord[], source: QARecordSource, suffix: string
     rows.push(
       [
         record.id,
-        source.label,
+        sourceLabel,
         statusLabels[normalizeStatus(record)],
         formatDateTime(record.create_time),
         formatDuration(record.answer_duration_seconds),
@@ -541,10 +548,14 @@ function downloadCsv(records: QARecord[], source: QARecordSource, suffix: string
 
 function StatusDistribution({
   analysis,
-  onStatusClick
+  onStatusClick,
+  statusLabels,
+  ui
 }: {
   analysis: Analysis;
   onStatusClick: (status: QAStatus) => void;
+  statusLabels: Record<QAStatus, string>;
+  ui: DashboardText;
 }) {
   return (
     <div className="qa-status-bars">
@@ -561,7 +572,7 @@ function StatusDistribution({
             <span className="qa-status-bar__head">
               <span>{statusLabels[status]}</span>
               <strong>
-                {count} 条 · {percent}%
+                {count} {ui.recordUnit} · {percent}%
               </strong>
             </span>
             <span className="qa-status-bar__track">
@@ -574,7 +585,7 @@ function StatusDistribution({
   );
 }
 
-function TrendChart({ analysis }: { analysis: Analysis }) {
+function TrendChart({ analysis, ui }: { analysis: Analysis; ui: DashboardText }) {
   const dates = Object.keys(analysis.daily).sort();
   const width = 680;
   const height = 230;
@@ -593,9 +604,9 @@ function TrendChart({ analysis }: { analysis: Analysis }) {
   return (
     <div className="qa-trend-chart">
       {dates.length === 0 ? (
-        <div className="qa-chart-empty">暂无近 30 天趋势数据</div>
+        <div className="qa-chart-empty">{ui.noTrendData}</div>
       ) : (
-        <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="近 30 天趋势">
+        <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={ui.trend30Days}>
           <line x1={padX} y1={height - padY} x2={width - padX} y2={height - padY} />
           <line x1={padX} y1={padY} x2={padX} y2={height - padY} />
           <polyline points={points} />
@@ -623,52 +634,56 @@ function TrendChart({ analysis }: { analysis: Analysis }) {
 
 function DetailDrawer({
   record,
-  onClose
+  onClose,
+  statusLabels,
+  ui
 }: {
   record: QARecord | null;
   onClose: () => void;
+  statusLabels: Record<QAStatus, string>;
+  ui: DashboardText;
 }) {
   if (!record) return null;
 
   const metrics = record.ragflow_prompt_metrics || {};
   const metricGroups = [
-    { title: '耗时明细', items: metrics.time_elapsed || [] },
-    { title: 'Token 明细', items: metrics.token_usage || [] }
+    { title: ui.timingDetails, items: metrics.time_elapsed || [] },
+    { title: ui.tokenDetails, items: metrics.token_usage || [] }
   ].filter((group) => group.items.length > 0);
 
   return (
     <div className="qa-drawer-mask" onClick={onClose}>
       <aside className="qa-drawer" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
         <div className="qa-drawer__head">
-          <h2>记录详情</h2>
-          <button type="button" onClick={onClose} aria-label="关闭">
+          <h2>{ui.recordDetails}</h2>
+          <button type="button" onClick={onClose} aria-label={ui.close} title={ui.close}>
             ×
           </button>
         </div>
 
         <div className="qa-detail-section">
           <div className="qa-meta-grid">
-            <div><span>ID</span><strong>{record.id || '--'}</strong></div>
-            <div><span>状态</span><strong>{statusLabels[normalizeStatus(record)]}</strong></div>
-            <div><span>时间</span><strong>{formatDateTime(record.create_time)}</strong></div>
-            <div><span>耗时</span><strong>{formatDuration(record.answer_duration_seconds)}</strong></div>
-            <div><span>Token</span><strong>{getTokenCount(record) ?? '--'}</strong></div>
-            <div><span>来源</span><strong>{getSourceSummary(record)}</strong></div>
+            <div><span>{ui.id}</span><strong>{record.id || '--'}</strong></div>
+            <div><span>{ui.status}</span><strong>{statusLabels[normalizeStatus(record)]}</strong></div>
+            <div><span>{ui.time}</span><strong>{formatDateTime(record.create_time)}</strong></div>
+            <div><span>{ui.duration}</span><strong>{formatDuration(record.answer_duration_seconds)}</strong></div>
+            <div><span>{ui.token}</span><strong>{getTokenCount(record) ?? '--'}</strong></div>
+            <div><span>{ui.source}</span><strong>{getSourceSummary(record)}</strong></div>
           </div>
         </div>
 
         <div className="qa-detail-section">
-          <h3>问题</h3>
+          <h3>{ui.question}</h3>
           <p>{record.question || '--'}</p>
         </div>
         <div className="qa-detail-section">
-          <h3>回答</h3>
+          <h3>{ui.answer}</h3>
           <p>{record.answer || '--'}</p>
         </div>
 
         {(record.fail_reason || record.failure_reason) && (
           <div className="qa-detail-section">
-            <h3>失败原因</h3>
+            <h3>{ui.failureReason}</h3>
             <p>{record.fail_reason || record.failure_reason}</p>
           </div>
         )}
@@ -692,6 +707,7 @@ function DetailDrawer({
 }
 
 function QARecordsDashboard() {
+  const { language, t, toggleLanguage } = useI18n();
   const [searchParams, setSearchParams] = useSearchParams();
   const [sourceKey, setSourceKey] = useState<QARecordSourceKey>(() => getInitialSource(searchParams));
   const [records, setRecords] = useState<QARecord[]>([]);
@@ -708,11 +724,15 @@ function QARecordsDashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [statsError, setStatsError] = useState('');
   const [syncMessage, setSyncMessage] = useState('');
   const [syncVersion, setSyncVersion] = useState(0);
   const [selectedRecord, setSelectedRecord] = useState<QARecord | null>(null);
 
   const source = QA_RECORD_SOURCES[sourceKey];
+  const sourceText = qaSourceText[language][sourceKey];
+  const statusLabels = qaStatusLabels[language];
+  const ui = qaDashboardText[language];
 
   useEffect(() => {
     setSearchParams({ source: sourceKey }, { replace: true });
@@ -729,7 +749,7 @@ function QARecordsDashboard() {
 
     setLoading(true);
     setError('');
-    setSyncMessage('正在从后端查询 MySQL 数据...');
+    setSyncMessage(ui.queryingMysql);
 
     async function loadData() {
       const cachedSnapshot = await loadCachedSnapshot(sourceKey);
@@ -739,14 +759,13 @@ function QARecordsDashboard() {
         setRecords(cachedSnapshot.records.slice(0, QA_RECORD_PAGE_SIZE));
         setTotalRecords(cachedSnapshot.records.length);
         setTotalPageCount(Math.max(1, Math.ceil(cachedSnapshot.records.length / QA_RECORD_PAGE_SIZE)));
-        setServerAnalysis(analyzeRecords(cachedSnapshot.records));
-        setSyncMessage(`已显示 IndexedDB 缓存 ${cachedSnapshot.records.length} 条，正在刷新后端数据...`);
+        setServerAnalysis((current) => current ?? analyzeRecords(cachedSnapshot.records));
+        setSyncMessage(interpolateDashboardText(ui.cachedRefreshing, { count: cachedSnapshot.records.length }));
       }
 
       try {
-        const [pageResult, statsResult, changesResult] = await Promise.all([
+        const [pageResult, changesResult] = await Promise.all([
           fetchRecordPage(sourceKey, filters, currentPage),
-          fetchRecordStats(sourceKey, filters),
           canShowCachedSnapshot ? fetchRecordChanges(sourceKey, cachedSnapshot) : Promise.resolve(null)
         ]);
         if (cancelled) return;
@@ -755,8 +774,6 @@ function QARecordsDashboard() {
         setRecords(pageRecords);
         setTotalRecords(pageResult.total || 0);
         setTotalPageCount(Math.max(1, pageResult.total_pages || 1));
-        setServerAnalysis(toAnalysis(statsResult));
-
         if (canShowCachedSnapshot) {
           const mergedRecords = changesResult
             ? mergeRecords(cachedSnapshot?.records || [], changesResult.items || [])
@@ -766,17 +783,17 @@ function QARecordsDashboard() {
           const changedCount = changesResult?.items?.length || 0;
           setSyncMessage(
             changedCount > 0
-              ? `已更新后端数据，并同步 IndexedDB 变更 ${changedCount} 条`
-              : '已更新后端数据，IndexedDB 缓存无新增变更'
+              ? interpolateDashboardText(ui.syncedChanges, { count: changedCount })
+              : ui.syncedNoChanges
           );
         } else {
-          setSyncMessage('已按筛选条件从后端加载当前页和统计数据');
+          setSyncMessage(ui.loadedServer);
         }
       } catch (err) {
         if (!cancelled) {
           const message = err instanceof Error ? err.message : String(err);
-          setError(`加载失败：${message}`);
-          setSyncMessage(canShowCachedSnapshot && cachedSnapshot?.records.length ? '后端暂不可用，已保留缓存快照' : '');
+          setError(`${ui.loadFailed}${message}`);
+          setSyncMessage(canShowCachedSnapshot && cachedSnapshot?.records.length ? ui.backendUnavailable : '');
         }
       } finally {
         if (!cancelled) {
@@ -790,9 +807,27 @@ function QARecordsDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [sourceKey, filters, currentPage, syncVersion]);
+  }, [sourceKey, filters, currentPage, syncVersion, ui]);
 
-  const analysis = useMemo(() => serverAnalysis || analyzeRecords(records), [records, serverAnalysis]);
+  useEffect(() => {
+    let cancelled = false;
+    setServerAnalysis(null);
+    setStatsError('');
+
+    fetchRecordStats(sourceKey, filters)
+      .then((result) => {
+        if (!cancelled) setServerAnalysis(toAnalysis(result));
+      })
+      .catch((err) => {
+        if (!cancelled) setStatsError(err instanceof Error ? err.message : String(err));
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sourceKey, filters, syncVersion]);
+
+  const analysis = useMemo(() => serverAnalysis || analyzeRecords([]), [serverAnalysis]);
   const totalPages = Math.max(1, totalPageCount);
   const pageItems = records;
 
@@ -811,10 +846,22 @@ function QARecordsDashboard() {
   return (
     <main className="qa-dashboard">
       <section className="qa-dashboard__topbar">
-        <div>
-          <h1>{source.title}</h1>
-          <p>{source.description}</p>
+        <button
+          type="button"
+          className="qa-dashboard__language-toggle"
+          onClick={toggleLanguage}
+          aria-label={t('common.switchLanguageLabel')}
+          title={t('common.switchLanguageLabel')}
+        >
+          {t('common.switchLanguage')}
+        </button>
+        <div className="qa-dashboard__title">
+          <h1>{sourceText.title}</h1>
+          <p>{sourceText.description}</p>
         </div>
+      </section>
+
+      <section className="qa-dashboard__utility-bar">
         <div className="qa-dashboard__actions">
           <button
             type="button"
@@ -822,22 +869,21 @@ function QARecordsDashboard() {
               setSyncVersion((current) => current + 1);
             }}
           >
-            增量同步
+            {ui.sync}
           </button>
           <button
             type="button"
             className="primary"
             disabled={pageItems.length === 0}
-            onClick={() => downloadCsv(pageItems, source, 'current_page')}
+            onClick={() => downloadCsv(pageItems, source, sourceText.label, statusLabels, ui, 'current_page')}
           >
-            导出当前查询页
+            {ui.exportCurrent}
           </button>
         </div>
       </section>
-
       <section className="qa-filter-bar">
         <label>
-          <span>记录类型</span>
+          <span>{ui.recordType}</span>
           <select
             value={sourceKey}
             onChange={(event) => {
@@ -847,20 +893,20 @@ function QARecordsDashboard() {
           >
             {Object.values(QA_RECORD_SOURCES).map((item) => (
               <option key={item.key} value={item.key}>
-                {item.label}
+                {qaSourceText[language][item.key].label}
               </option>
             ))}
           </select>
         </label>
         <label>
-          <span>回答状态</span>
+          <span>{ui.answerStatus}</span>
           <select
             value={draftFilters.status}
             onChange={(event) =>
               setDraftFilters((current) => ({ ...current, status: event.target.value as Filters['status'] }))
             }
           >
-            <option value="">全部</option>
+            <option value="">{ui.all}</option>
             {statusOrder.map((status) => (
               <option value={status} key={status}>
                 {statusLabels[status]}
@@ -869,7 +915,7 @@ function QARecordsDashboard() {
           </select>
         </label>
         <label>
-          <span>开始日期</span>
+          <span>{ui.startDate}</span>
           <input
             type="date"
             value={draftFilters.dateStart}
@@ -877,7 +923,7 @@ function QARecordsDashboard() {
           />
         </label>
         <label>
-          <span>结束日期</span>
+          <span>{ui.endDate}</span>
           <input
             type="date"
             value={draftFilters.dateEnd}
@@ -885,10 +931,10 @@ function QARecordsDashboard() {
           />
         </label>
         <label>
-          <span>关键词</span>
+          <span>{ui.keyword}</span>
           <input
             type="search"
-            placeholder="搜索问题、答案、ID"
+            placeholder={ui.keywordPlaceholder}
             value={draftFilters.keyword}
             onChange={(event) => setDraftFilters((current) => ({ ...current, keyword: event.target.value }))}
             onKeyDown={(event) => {
@@ -898,30 +944,33 @@ function QARecordsDashboard() {
         </label>
         <div className="qa-filter-bar__actions">
           <button type="button" className="primary" onClick={applyFilters}>
-            查询
+            {ui.search}
           </button>
           <button type="button" onClick={resetFilters}>
-            重置
+            {ui.reset}
           </button>
         </div>
       </section>
 
+      {statsError && <div className="qa-table-state error">{ui.loadFailed}{statsError}</div>}
       <section className="qa-kpi-grid">
-        <div><span>总记录数</span><strong>{analysis.total || '--'}</strong><small>当前筛选</small></div>
-        <div><span>回答率</span><strong>{analysis.total ? `${analysis.answerRate}%` : '--'}</strong><small>{analysis.answered} 条已回答</small></div>
-        <div><span>未回答率</span><strong>{analysis.total ? `${analysis.unansweredRate}%` : '--'}</strong><small>知识库缺口线索</small></div>
-        <div><span>平均耗时</span><strong>{formatDuration(analysis.avgDuration)}</strong><small>有耗时字段时统计</small></div>
-        <div><span>P95 耗时</span><strong>{formatDuration(analysis.p95Duration)}</strong><small>慢请求排查</small></div>
-        <div><span>Token 总量</span><strong>{analysis.totalTokens ?? '--'}</strong><small>{source.supportsRagflowMetrics ? 'RagFlow 明细统计' : '字段存在时统计'}</small></div>
+        <div><span>{ui.totalRecords}</span><strong>{analysis.total || '--'}</strong><small>{ui.currentFilter}</small></div>
+        <div><span>{ui.answerRate}</span><strong>{analysis.total ? `${analysis.answerRate}%` : '--'}</strong><small>{interpolateDashboardText(ui.answeredRecords, { count: analysis.answered })}</small></div>
+        <div><span>{ui.unansweredRate}</span><strong>{analysis.total ? `${analysis.unansweredRate}%` : '--'}</strong><small>{ui.knowledgeGap}</small></div>
+        <div><span>{ui.averageDuration}</span><strong>{formatDuration(analysis.avgDuration)}</strong><small>{ui.durationAvailable}</small></div>
+        <div><span>{ui.p95Duration}</span><strong>{formatDuration(analysis.p95Duration)}</strong><small>{ui.slowRequests}</small></div>
+        <div><span>{ui.totalTokens}</span><strong>{analysis.totalTokens ?? '--'}</strong><small>{source.supportsRagflowMetrics ? ui.ragflowMetrics : ui.fieldMetrics}</small></div>
       </section>
 
       <section className="qa-analysis-grid">
         <div className="qa-panel">
           <div className="qa-panel__head">
-            <h2>回答状态分布</h2>
+            <h2>{ui.statusDistribution}</h2>
           </div>
           <StatusDistribution
             analysis={analysis}
+            statusLabels={statusLabels}
+            ui={ui}
             onStatusClick={(status) => {
               const nextFilters = { ...draftFilters, status };
               setDraftFilters(nextFilters);
@@ -932,28 +981,28 @@ function QARecordsDashboard() {
         </div>
         <div className="qa-panel">
           <div className="qa-panel__head">
-            <h2>近 30 天趋势</h2>
+            <h2>{ui.trend30Days}</h2>
           </div>
-          <TrendChart analysis={analysis} />
+          <TrendChart analysis={analysis} ui={ui} />
         </div>
       </section>
 
       <section className="qa-table-panel">
         <div className="qa-table-panel__head">
           <div>
-            <strong>问答记录</strong>
-            <span>共 {totalRecords} 条</span>
+            <strong>{ui.qaRecords}</strong>
+            <span>{interpolateDashboardText(ui.totalWithCount, { count: totalRecords })}</span>
           </div>
           <div className="qa-table-panel__status">
             <span>{syncMessage}</span>
-            <span>接口：{source.apiBaseUrl}</span>
+            <span>{ui.api}{source.apiBaseUrl}</span>
           </div>
         </div>
 
-        {loading && <div className="qa-table-state">正在加载...</div>}
+        {loading && <div className="qa-table-state">{ui.loading}</div>}
         {!loading && error && <div className="qa-table-state error">{error}</div>}
         {!loading && !error && pageItems.length === 0 && (
-          <div className="qa-table-state">暂无符合条件的记录</div>
+          <div className="qa-table-state">{ui.noRecords}</div>
         )}
         {!loading && !error && pageItems.length > 0 && (
           <>
@@ -961,14 +1010,14 @@ function QARecordsDashboard() {
               <table className="qa-record-table">
                 <thead>
                   <tr>
-                    <th>时间</th>
-                    <th>状态</th>
-                    <th>问题</th>
-                    <th>回答摘要</th>
-                    <th>耗时</th>
-                    <th>Token</th>
-                    <th>来源</th>
-                    <th>操作</th>
+                    <th>{ui.time}</th>
+                    <th>{ui.status}</th>
+                    <th>{ui.question}</th>
+                    <th>{ui.answerSummary}</th>
+                    <th>{ui.duration}</th>
+                    <th>{ui.token}</th>
+                    <th>{ui.source}</th>
+                    <th>{ui.actions}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -987,7 +1036,7 @@ function QARecordsDashboard() {
                         <td>{getSourceSummary(record)}</td>
                         <td>
                           <button type="button" className="qa-row-action" onClick={() => setSelectedRecord(record)}>
-                            详情
+                            {ui.details}
                           </button>
                         </td>
                       </tr>
@@ -997,23 +1046,23 @@ function QARecordsDashboard() {
               </table>
             </div>
             <div className="qa-pagination">
-              <span>第 {currentPage} / {totalPages} 页</span>
+              <span>{interpolateDashboardText(ui.pageOf, { page: currentPage, total: totalPages })}</span>
               <button type="button" disabled={currentPage <= 1} onClick={() => setCurrentPage((page) => page - 1)}>
-                上一页
+                {ui.previous}
               </button>
               <button
                 type="button"
                 disabled={currentPage >= totalPages}
                 onClick={() => setCurrentPage((page) => page + 1)}
               >
-                下一页
+                {ui.next}
               </button>
             </div>
           </>
         )}
       </section>
 
-      <DetailDrawer record={selectedRecord} onClose={() => setSelectedRecord(null)} />
+      <DetailDrawer record={selectedRecord} onClose={() => setSelectedRecord(null)} statusLabels={statusLabels} ui={ui} />
     </main>
   );
 }

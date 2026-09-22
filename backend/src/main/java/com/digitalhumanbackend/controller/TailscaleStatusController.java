@@ -9,9 +9,12 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -68,25 +71,48 @@ public class TailscaleStatusController {
     }
 
     private PingResult pingHost(String ip) throws IOException, InterruptedException {
-        ProcessBuilder processBuilder = new ProcessBuilder("ping", "-n", "1", "-w", String.valueOf(timeoutMs), ip);
+        boolean windows = System.getProperty("os.name", "").toLowerCase(Locale.ROOT).startsWith("windows");
+        int effectiveTimeoutMs = Math.max(1, timeoutMs);
+        ProcessBuilder processBuilder = new ProcessBuilder(buildPingCommand(ip, effectiveTimeoutMs, windows));
         processBuilder.redirectErrorStream(true);
         long start = System.currentTimeMillis();
         Process process = processBuilder.start();
-        String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-        int exitCode = process.waitFor();
-        long elapsed = System.currentTimeMillis() - start;
-        boolean ok = exitCode == 0 && output.contains("TTL=");
-        Long parsed = parsePingMs(output);
-        Long timeMs = parsed != null ? parsed : elapsed;
-        return new PingResult(ok, timeMs);
+        try {
+            if (!process.waitFor((long) effectiveTimeoutMs + 1000L, TimeUnit.MILLISECONDS)) {
+                process.destroyForcibly();
+                return new PingResult(false, null);
+            }
+            String output = new String(process.getInputStream().readAllBytes(), Charset.defaultCharset());
+            if (process.exitValue() != 0) {
+                return new PingResult(false, null);
+            }
+            Long parsed = parsePingMs(output);
+            long elapsed = System.currentTimeMillis() - start;
+            return new PingResult(true, parsed != null ? parsed : elapsed);
+        } finally {
+            process.destroyForcibly();
+            try {
+                process.getInputStream().close();
+            } catch (IOException ignored) {
+                // The ping result has already been determined.
+            }
+        }
     }
 
-    private Long parsePingMs(String output) {
-        Pattern pattern = Pattern.compile("(?:time=|时间=|time<)(\\d+)\\s*ms", Pattern.CASE_INSENSITIVE);
+    static List<String> buildPingCommand(String ip, int timeoutMs, boolean windows) {
+        if (windows) {
+            return List.of("ping", "-n", "1", "-w", String.valueOf(timeoutMs), ip);
+        }
+        int timeoutSeconds = (int) Math.min(Integer.MAX_VALUE, ((long) timeoutMs + 999L) / 1000L);
+        return List.of("ping", "-c", "1", "-W", String.valueOf(Math.max(1, timeoutSeconds)), ip);
+    }
+
+    static Long parsePingMs(String output) {
+        Pattern pattern = Pattern.compile("(?:time|时间)\\s*[=<]\\s*(\\d+(?:[.,]\\d+)?)\\s*ms", Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(output);
         if (matcher.find()) {
             try {
-                return Long.parseLong(matcher.group(1));
+                return Math.max(1L, Math.round(Double.parseDouble(matcher.group(1).replace(',', '.'))));
             } catch (NumberFormatException ignored) {
                 return null;
             }
@@ -122,6 +148,9 @@ public class TailscaleStatusController {
     private TargetResult safeCheckTarget(String name, String url, String ip) {
         try {
             return checkTarget(name, url, ip);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            return TargetResult.error(name, url, ip);
         } catch (Exception ex) {
             return TargetResult.error(name, url, ip);
         }

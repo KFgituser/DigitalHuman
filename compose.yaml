@@ -24,6 +24,7 @@ services:
     image: digitalhuman-backend:1.0
     restart: unless-stopped
     environment:
+      SPRING_PROFILES_ACTIVE: prod
       DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
       DB_USERNAME: ${MYSQL_APP_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}

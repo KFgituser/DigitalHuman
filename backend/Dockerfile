@@ -10,6 +10,9 @@ RUN ./mvnw --batch-mode package -DskipTests
 
 FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends iputils-ping \
+    && rm -rf /var/lib/apt/lists/*
 RUN useradd --system --uid 10001 appuser
 COPY --from=build /app/target/DigitalHuman-backend-0.0.1-SNAPSHOT.jar app.jar
 USER appuser

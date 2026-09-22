@@ -27,26 +27,68 @@
 }
 
 .qa-dashboard__topbar {
-  align-items: center;
-  display: flex;
-  gap: 18px;
-  justify-content: space-between;
-  margin: 0 auto 16px;
+  border-radius: 8px 8px 0 0;
+  display: block;
+  margin: 0 auto;
   max-width: 1480px;
-  padding: 18px 20px;
+  padding: 36px 84px 20px;
+  position: relative;
+  text-align: center;
+}
+
+.qa-dashboard__title {
+  border-bottom: 1px solid #e7ebf1;
+  margin: 0 auto;
+  max-width: 980px;
+  padding-bottom: 22px;
 }
 
 .qa-dashboard__topbar h1 {
-  font-size: 24px;
-  line-height: 1.25;
-  margin: 0 0 4px;
+  color: #26384d;
+  font-size: 34px;
+  line-height: 1.2;
+  margin: 0;
 }
 
 .qa-dashboard__topbar p {
   color: #667085;
-  margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 12px auto 0;
+  max-width: 800px;
 }
 
+.qa-dashboard__language-toggle {
+  background: #321149 !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  box-shadow: 0 10px 20px rgba(50, 17, 73, 0.24);
+  color: #fff !important;
+  height: 48px;
+  padding: 0 !important;
+  position: absolute;
+  right: 22px;
+  top: 20px;
+  width: 48px;
+}
+
+.qa-dashboard__language-toggle:hover:not(:disabled) {
+  background: #4a196c !important;
+}
+
+.qa-dashboard__utility-bar {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #dfe5ef;
+  border-radius: 0 0 8px 8px;
+  border-top: 0;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 auto 16px;
+  max-width: 1480px;
+  padding: 16px 20px;
+}
 .qa-dashboard__actions,
 .qa-filter-bar__actions {
   align-items: center;
@@ -532,8 +574,34 @@
   .qa-dashboard {
     padding: 12px;
   }
+  .qa-dashboard__topbar {
+    padding: 28px 18px 18px;
+  }
 
-  .qa-dashboard__topbar,
+  .qa-dashboard__title {
+    padding-bottom: 18px;
+  }
+
+  .qa-dashboard__topbar h1 {
+    font-size: 26px;
+    padding-top: 50px;
+  }
+
+  .qa-dashboard__topbar p {
+    font-size: 14px;
+  }
+
+  .qa-dashboard__language-toggle {
+    height: 42px !important;
+    right: 16px;
+    top: 14px;
+    width: 42px !important;
+  }
+
+  .qa-dashboard__utility-bar {
+    padding: 12px;
+  }
+
   .qa-table-panel__head,
   .qa-pagination {
     align-items: stretch;

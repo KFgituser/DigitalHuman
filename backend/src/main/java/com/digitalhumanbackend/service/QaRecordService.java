@@ -6,7 +6,13 @@ import com.digitalhumanbackend.dto.QaRecordResponse;
 import com.digitalhumanbackend.dto.QaRecordStatsResponse;
 import com.digitalhumanbackend.model.QaRecord;
 import com.digitalhumanbackend.repository.QaRecordRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Tuple;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -14,16 +20,15 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -38,6 +43,7 @@ public class QaRecordService {
     );
 
     private final QaRecordRepository qaRecordRepository;
+    private final EntityManager entityManager;
 
     @Transactional(readOnly = true)
     public QaRecordPageResponse search(
@@ -72,69 +78,99 @@ public class QaRecordService {
 
     @Transactional(readOnly = true)
     public QaRecordStatsResponse stats(String source, String status, String keyword, String dateStart, String dateEnd) {
-        List<QaRecord> records = qaRecordRepository.findAll(
-                buildSpec(source, status, keyword, parseStart(dateStart), parseEnd(dateEnd), false)
+        Specification<QaRecord> spec = buildSpec(source, status, keyword, parseStart(dateStart), parseEnd(dateEnd), false);
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Tuple> query = cb.createTupleQuery();
+        Root<QaRecord> root = query.from(QaRecord.class);
+        Expression<Integer> year = cb.function("year", Integer.class, root.get("createdAt"));
+        Expression<Integer> month = cb.function("month", Integer.class, root.get("createdAt"));
+        Expression<Integer> day = cb.function("day", Integer.class, root.get("createdAt"));
+        Expression<String> normalizedStatus = statusExpression(cb, root);
+        Expression<Double> duration = root.get("answerDurationSeconds");
+        Expression<Double> validDuration = cb.<Double>selectCase()
+                .when(cb.greaterThanOrEqualTo(duration, 0d), duration)
+                .otherwise(cb.nullLiteral(Double.class));
+        Expression<Long> retrievalHit = cb.<Long>selectCase()
+                .when(cb.isTrue(root.get("retrievalHit")), 1L)
+                .otherwise(0L);
+
+        query.multiselect(
+                year, month, day, normalizedStatus,
+                cb.count(root), cb.sum(validDuration), cb.count(validDuration),
+                cb.sum(root.<Long>get("totalTokens")), cb.count(root.get("totalTokens")),
+                cb.sum(retrievalHit), cb.count(root.get("retrievalHit"))
         );
+        query.where(spec.toPredicate(root, query, cb));
+        query.groupBy(year, month, day, normalizedStatus);
 
-        long answered = 0;
-        long unanswered = 0;
-        long unclear = 0;
-        long unknown = 0;
-        long totalTokens = 0;
-        long tokenSamples = 0;
-        long retrievalHits = 0;
-        long retrievalSamples = 0;
-        List<Double> durations = new ArrayList<>();
-        Map<String, MutableDailyStats> daily = new LinkedHashMap<>();
-
-        for (QaRecord record : records) {
-            String normalizedStatus = normalizeStatus(record);
-            switch (normalizedStatus) {
-                case "answered" -> answered++;
-                case "unanswered" -> unanswered++;
-                case "unclear" -> unclear++;
-                default -> unknown++;
-            }
-
-            if (record.getAnswerDurationSeconds() != null && record.getAnswerDurationSeconds() >= 0) {
-                durations.add(record.getAnswerDurationSeconds());
-            }
-            if (record.getTotalTokens() != null) {
-                totalTokens += record.getTotalTokens();
-                tokenSamples++;
-            }
-            if (record.getRetrievalHit() != null) {
-                retrievalSamples++;
-                if (record.getRetrievalHit()) {
-                    retrievalHits++;
-                }
-            }
-            if (record.getCreatedAt() != null) {
-                String day = record.getCreatedAt().toLocalDate().toString();
-                daily.computeIfAbsent(day, key -> new MutableDailyStats()).add(normalizedStatus);
-            }
+        StatsTotals totals = new StatsTotals();
+        Map<String, StatsTotals> daily = new LinkedHashMap<>();
+        for (Tuple row : entityManager.createQuery(query).getResultList()) {
+            String date = LocalDate.of(row.get(0, Number.class).intValue(),
+                    row.get(1, Number.class).intValue(), row.get(2, Number.class).intValue()).toString();
+            String rowStatus = row.get(3, String.class);
+            totals.add(rowStatus, row);
+            daily.computeIfAbsent(date, ignored -> new StatsTotals()).add(rowStatus, row);
         }
 
-        long total = records.size();
         Map<String, QaRecordStatsResponse.QaRecordDailyStats> dailyResponse = new LinkedHashMap<>();
         daily.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
-                .forEach(entry -> dailyResponse.put(entry.getKey(), entry.getValue().toResponse()));
+                .forEach(entry -> dailyResponse.put(entry.getKey(), entry.getValue().toDailyResponse()));
 
         return new QaRecordStatsResponse(
-                total,
-                answered,
-                unanswered,
-                unclear,
-                unknown,
-                percent(answered, total),
-                percent(unanswered, total),
-                average(durations),
-                percentile(durations, 0.95),
-                tokenSamples > 0 ? totalTokens : null,
-                retrievalSamples > 0 ? percent(retrievalHits, retrievalSamples) : null,
+                totals.total,
+                totals.answered,
+                totals.unanswered,
+                totals.unclear,
+                totals.unknown,
+                percent(totals.answered, totals.total),
+                percent(totals.unanswered, totals.total),
+                totals.durationCount > 0 ? totals.durationSum / totals.durationCount : null,
+                percentileDuration(spec, totals.durationCount),
+                totals.tokenCount > 0 ? totals.tokenSum : null,
+                totals.retrievalCount > 0 ? percent(totals.retrievalHits, totals.retrievalCount) : null,
                 dailyResponse
         );
+    }
+
+    private Expression<String> statusExpression(CriteriaBuilder cb, Root<QaRecord> root) {
+        Expression<String> explicit = cb.trim(root.get("answerStatus"));
+        Expression<String> failReason = cb.trim(root.get("failReason"));
+        Expression<String> answer = cb.trim(root.get("answer"));
+        return cb.<String>selectCase()
+                .when(cb.greaterThan(cb.length(explicit), 0), explicit)
+                .when(cb.greaterThan(cb.length(failReason), 0), "unanswered")
+                .when(cb.or(cb.isNull(answer), cb.lessThan(cb.length(answer), 10)), "unanswered")
+                .when(cb.or(
+                        cb.like(answer, "%提问不清晰%"),
+                        cb.like(answer, "%问题表述不清晰%"),
+                        cb.like(answer, "%提问不明确%")
+                ), "unclear")
+                .when(cb.or(
+                        cb.like(answer, "%未查询到%"),
+                        cb.like(answer, "%无法回答%"),
+                        cb.like(answer, "%抱歉%"),
+                        cb.like(answer, "%不知道%")
+                ), "unanswered")
+                .otherwise("answered");
+    }
+
+    private Double percentileDuration(Specification<QaRecord> spec, long count) {
+        if (count == 0) {
+            return null;
+        }
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Double> query = cb.createQuery(Double.class);
+        Root<QaRecord> root = query.from(QaRecord.class);
+        Expression<Double> duration = root.get("answerDurationSeconds");
+        query.select(duration);
+        query.where(cb.and(spec.toPredicate(root, query, cb), cb.greaterThanOrEqualTo(duration, 0d)));
+        query.orderBy(cb.asc(duration));
+        return entityManager.createQuery(query)
+                .setFirstResult((int) Math.ceil(count * 0.95) - 1)
+                .setMaxResults(1)
+                .getSingleResult();
     }
 
     @Transactional(readOnly = true)
@@ -332,39 +368,40 @@ public class QaRecordService {
         return Math.round((float) numerator * 100 / denominator);
     }
 
-    private Double average(List<Double> values) {
-        return values.isEmpty()
-                ? null
-                : values.stream().filter(Objects::nonNull).mapToDouble(Double::doubleValue).average().orElse(0);
-    }
-
-    private Double percentile(List<Double> values, double ratio) {
-        if (values.isEmpty()) {
-            return null;
-        }
-        List<Double> sorted = values.stream().sorted(Comparator.naturalOrder()).toList();
-        int index = (int) Math.ceil(sorted.size() * ratio) - 1;
-        return sorted.get(Math.max(0, Math.min(index, sorted.size() - 1)));
-    }
-
-    private static class MutableDailyStats {
+    private static class StatsTotals {
         private long total;
         private long answered;
         private long unanswered;
         private long unclear;
         private long unknown;
+        private double durationSum;
+        private long durationCount;
+        private long tokenSum;
+        private long tokenCount;
+        private long retrievalHits;
+        private long retrievalCount;
 
-        private void add(String status) {
-            total++;
+        private void add(String status, Tuple row) {
+            long count = row.get(4, Number.class).longValue();
+            total += count;
             switch (status) {
-                case "answered" -> answered++;
-                case "unanswered" -> unanswered++;
-                case "unclear" -> unclear++;
-                default -> unknown++;
+                case "answered" -> answered += count;
+                case "unanswered" -> unanswered += count;
+                case "unclear" -> unclear += count;
+                default -> unknown += count;
             }
+            Number duration = row.get(5, Number.class);
+            durationSum += duration == null ? 0 : duration.doubleValue();
+            durationCount += row.get(6, Number.class).longValue();
+            Number tokens = row.get(7, Number.class);
+            tokenSum += tokens == null ? 0 : tokens.longValue();
+            tokenCount += row.get(8, Number.class).longValue();
+            Number hits = row.get(9, Number.class);
+            retrievalHits += hits == null ? 0 : hits.longValue();
+            retrievalCount += row.get(10, Number.class).longValue();
         }
 
-        private QaRecordStatsResponse.QaRecordDailyStats toResponse() {
+        private QaRecordStatsResponse.QaRecordDailyStats toDailyResponse() {
             return new QaRecordStatsResponse.QaRecordDailyStats(total, answered, unanswered, unclear, unknown);
         }
     }
